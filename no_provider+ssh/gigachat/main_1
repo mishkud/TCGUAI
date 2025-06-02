@@ -1,0 +1,115 @@
+terraform {
+  required_providers {
+    yandex = {
+      source = "yandex-cloud/yandex"
+    }
+  }
+  required_version = ">= 0.13"
+}
+
+provider "yandex" {
+  zone = "<зона_доступности_по_умолчанию>"
+}
+# Переменные, задаваемые пользователем
+
+variable "ssh_public_key_path" {
+  description = "Path to the public key file for SSH access."
+  default     = "~/.ssh/id_rsa.pub"
+}
+
+variable "db_password" {
+  type        = string
+  sensitive   = true # Скрывает пароль в выводе команд
+  description = "(Required) Password for the database user."
+}
+
+locals {
+  ssh_public_key = chomp(file(var.ssh_public_key_path))
+}
+
+# Управление сетью
+resource "yandex_vpc_network" "default" {}
+
+resource "yandex_vpc_subnet" "crm-subnet" {
+  zone           = "ru-central1-a"
+  network_id     = yandex_vpc_network.default.id
+  v4_cidr_blocks = ["10.130.0.0/24"]
+}
+
+resource "yandex_vpc_subnet" "shop-subnet" {
+  zone           = "ru-central1-b"
+  network_id     = yandex_vpc_network.default.id
+  v4_cidr_blocks = ["10.131.0.0/24"]
+}
+
+# Создаем две виртуальные машины
+resource "yandex_compute_instance" "crm-instance" {
+  name                  = "crm-server"
+  platform_id           = "standard-v3"
+  resources {
+    cores  = 2
+    memory = 8
+  }
+  boot_disk {
+    initialize_params {
+      image_id = "fd87jocvsn6v7obmtr1q" # Ubuntu 22.04 LTS
+    }
+  }
+  network_interface {
+    subnet_id       = yandex_vpc_subnet.crm-subnet.id
+    nat             = true
+  }
+  metadata = {
+    ssh-keys = "${local.ssh_public_key}"
+  }
+}
+
+resource "yandex_compute_instance" "shop-instance" {
+  name                  = "shop-server"
+  platform_id           = "standard-v3"
+  resources {
+    cores  = 2
+    memory = 8
+  }
+  boot_disk {
+    initialize_params {
+      image_id = "fd87jocvsn6v7obmtr1q" # Ubuntu 22.04 LTS
+    }
+  }
+  network_interface {
+    subnet_id       = yandex_vpc_subnet.shop-subnet.id
+    nat             = true
+  }
+  metadata = {
+    ssh-keys = "${local.ssh_public_key}"
+  }
+}
+
+# База данных MySQL
+resource "yandex_mdb_mysql_cluster" "mysql-cluster" {
+  name                = "mysql-crm-shop"
+  environment         = "PRODUCTION"
+  version              = "8.0"
+  mysql_user {
+    name     = "admin"
+    password = var.db_password
+  }
+  host {
+    zone          = "ru-central1-a"
+    assign_public_ip = false
+    subnet_id     = yandex_vpc_subnet.crm-subnet.id
+  }
+  resources {
+    resource_preset_id = "s2.micro"
+    disk_type_id       = "network-hdd"
+    disk_size          = 10
+  }
+}
+
+output "CRM VM IP Address" {
+  value = yandex_compute_instance.crm-instance.network_interface.0.nat_ip_address
+}
+
+output "Shop VM IP Address" {
+  value = yandex_compute_instance.shop-instance.network_interface.0.nat_ip_address
+}

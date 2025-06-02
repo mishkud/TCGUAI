@@ -1,0 +1,118 @@
+terraform {
+  required_providers {
+    yandex = {
+      source = "yandex-cloud/yandex"
+    }
+  }
+  required_version = ">= 0.13"
+}
+
+provider "yandex" {
+  zone = "<зона_доступности_по_умолчанию>"
+}
+# Определение сети и подсети
+resource "yandex_vpc_network" "network" {
+  name = "crm-shop-network"
+}
+
+resource "yandex_vpc_subnet" "subnet" {
+  name           = "crm-shop-subnet"
+  zone           = "ru-central1-a"
+  network_id     = yandex_vpc_network.network.id
+  v4_cidr_blocks = ["10.0.0.0/24"]
+}
+
+# Виртуальная машина для CRM
+resource "yandex_compute_instance" "crm_vm" {
+  name        = "crm-vm"
+  zone        = "ru-central1-a"
+  platform_id = "standard-v3"
+
+  resources {
+    cores  = 2
+    memory = 4
+    core_fraction = 20
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = "fd8dpmv7b6tk4gf7m32f" # Ubuntu 20.04 LTS
+      size     = 20
+    }
+  }
+
+  network_interface {
+    subnet_id = yandex_vpc_subnet.subnet.id
+    nat       = true
+  }
+
+  metadata = {
+    ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"
+  }
+}
+
+# Виртуальная машина для интернет-магазина
+resource "yandex_compute_instance" "shop_vm" {
+  name        = "shop-vm"
+  zone        = "ru-central1-a"
+  platform_id = "standard-v3"
+
+  resources {
+    cores  = 2
+    memory = 4
+    core_fraction = 20
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = "fd8dpmv7b6tk4gf7m32f" # Ubuntu 20.04 LTS
+      size     = 20
+    }
+  }
+
+  network_interface {
+    subnet_id = yandex_vpc_subnet.subnet.id
+    nat       = true
+  }
+
+  metadata = {
+    ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"
+  }
+}
+
+# Managed база данных MySQL
+resource "yandex_mdb_mysql_cluster" "mysql_cluster" {
+  name        = "crm-shop-mysql"
+  environment = "PRODUCTION"
+  network_id  = yandex_vpc_network.network.id
+  version     = "8.0"
+
+  resources {
+    resource_preset_id = "s2.micro"
+    disk_type_id       = "network-ssd"
+    disk_size          = 20
+  }
+
+  mysql_config = {
+    sql_mode = "ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION"
+  }
+
+  host {
+    zone      = "ru-central1-a"
+    subnet_id = yandex_vpc_subnet.subnet.id
+  }
+}
+
+# Вывод IP-адресов ВМ
+output "crm_vm_ip" {
+  value = yandex_compute_instance.crm_vm.network_interface.0.nat_ip_address
+}
+
+output "shop_vm_ip" {
+  value = yandex_compute_instance.shop_vm.network_interface.0.nat_ip_address
+}
+
+# Вывод параметров подключения к базе данных
+output "mysql_cluster_host" {
+  value = yandex_mdb_mysql_cluster.mysql_cluster.host[0].fqdn
+}

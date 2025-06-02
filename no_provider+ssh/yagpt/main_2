@@ -1,0 +1,136 @@
+terraform {
+  required_providers {
+    yandex = {
+      source = "yandex-cloud/yandex"
+    }
+  }
+  required_version = ">= 0.13"
+}
+
+provider "yandex" {
+  zone = "<зона_доступности_по_умолчанию>"
+}
+# Создаем сетевую инфраструктуру
+resource "yandex_vpc_network" "main_network" {
+  name = "main-network"
+}
+
+resource "yandex_vpc_subnet" "main_subnet" {
+  name       = "main-subnet"
+  network_id = yandex_vpc_network.main_network.id
+  zone       = "ru-central1-a"
+  ipv4_range = "10.1.0.0/24"
+}
+
+# Создаем виртуальные машины
+resource "yandex_compute_instance" "crm_server" {
+  name = "crm-server"
+  zone = "ru-central1-a"
+
+  platform_id = "standard-v2"
+  resources {
+    cores  = 2
+    memory = "4"
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = "fd83e82a-s76t-487f-b45d-f89d7bexxxxx"
+      size     = 50
+    }
+  }
+
+  network_interface {
+    subnet_id = yandex_vpc_subnet.main_subnet.id
+    nat       = true
+  }
+
+  metadata = {
+    ssh-keys = "terraform:${file("~/.ssh/id_rsa.pub")}"
+  }
+}
+
+resource "yandex_compute_instance" "shop_server" {
+  name = "shop-server"
+  zone = "ru-central1-a"
+
+  platform_id = "standard-v2"
+  resources {
+    cores  = 2
+    memory = "4"
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = "fd83e82a-s76t-487f-b45d-f89d7bexxxxx"
+      size     = 50
+    }
+  }
+
+  network_interface {
+    subnet_id = yandex_vpc_subnet.main_subnet.id
+    nat       = true
+  }
+
+  metadata = {
+    ssh-keys = "terraform:${file("~/.ssh/id_rsa.pub")}"
+  }
+}
+
+# Создаем Managed MySQL
+resource "yandex_mdb_mysql_cluster" "mysql_cluster" {
+  name       = "mysql-cluster"
+  environment = "PRODUCTION"
+  network_id = yandex_vpc_network.main_network.id
+
+  config_spec {
+    resources {
+      resource_preset_id = "b1.medium"
+      disk_size          = 10
+      disk_type_id       = "network-ssd"
+    }
+
+    backup_window_start = "03:00"
+  }
+
+  user {
+    name     = "admin"
+    password = "changeme"
+  }
+
+  host {
+    zone = "ru-central1-a"
+  }
+}
+
+# Создаем правила файрвола для доступа к базе данных
+resource "yandex_vpc_security_list" "mysql_security_list" {
+  name = "mysql-security-list"
+  network_id = yandex_vpc_network.main_network.id
+
+  ingress {
+    protocol = "tcp"
+    port     = "3306"
+    address  = yandex_compute_instance.crm_server.network_interface.0.ip_address
+  }
+
+  ingress {
+    protocol = "tcp"
+    port     = "3306"
+    address  = yandex_compute_instance.shop_server.network_interface.0.ip_address
+  }
+}
+
+# Выводим IP-адреса серверов после создания
+output "crm_server_ip" {
+  value = yandex_compute_instance.crm_server.network_interface.0.ip_address
+}
+
+output "shop_server_ip" {
+  value = yandex_compute_instance.shop_server.network_interface.0.ip_address
+}
+
+output "mysql_connection_string" {
+  value = yandex_mdb_mysql_cluster.mysql_cluster.connection_string
+}
+

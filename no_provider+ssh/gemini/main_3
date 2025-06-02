@@ -1,0 +1,206 @@
+terraform {
+  required_providers {
+    yandex = {
+      source = "yandex-cloud/yandex"
+    }
+  }
+  required_version = ">= 0.13"
+}
+
+provider "yandex" {
+  zone = "<зона_доступности_по_умолчанию>"
+}
+# Ресурсы для создания сети
+resource "yandex_vpc_network" "app_network" {
+  name = "app-lab-network"
+}
+
+resource "yandex_vpc_subnet" "app_subnet" {
+  name           = "app-lab-subnet-a"
+  zone           = "ru-central1-a" # Вы можете изменить зону доступности при необходимости
+  network_id     = yandex_vpc_network.app_network.id
+  v4_cidr_blocks = ["10.1.0.0/24"]
+}
+
+# Группа безопасности
+resource "yandex_vpc_security_group" "app_sg" {
+  name        = "app-lab-sg"
+  description = "Группа безопасности для CRM, интернет-магазина и БД"
+  network_id  = yandex_vpc_network.app_network.id
+
+  ingress {
+    description    = "Разрешить SSH из интернета"
+    protocol       = "TCP"
+    port           = 22
+    v4_cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description    = "Разрешить MySQL из внутренней сети"
+    protocol       = "TCP"
+    port           = 3306
+    v4_cidr_blocks = [yandex_vpc_subnet.app_subnet.v4_cidr_blocks[0]] # Доступ из подсети
+  }
+
+  egress {
+    description    = "Разрешить весь исходящий трафик"
+    protocol       = "ANY"
+    from_port      = 0
+    to_port        = 65535
+    v4_cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+# Генерация случайного пароля для базы данных
+resource "random_password" "db_password" {
+  length  = 16
+  special = true
+  # Можно добавить override_special для более контролируемого набора спецсимволов, если необходимо
+  # override_special = "_%@"
+}
+
+# Managed база данных MySQL
+resource "yandex_mdb_mysql_cluster" "app_mysql" {
+  name                = "app-mysql-cluster"
+  environment         = "PRESTABLE" # Используйте "PRODUCTION" для производственных сред
+  network_id          = yandex_vpc_network.app_network.id
+  security_group_ids  = [yandex_vpc_security_group.app_sg.id]
+  version             = "8.0"       # Версия MySQL, можно выбрать другую поддерживаемую
+
+  resources {
+    resource_preset_id = "b2.micro" # Минимальный подходящий класс хоста (2 vCPU, 2GB RAM)
+    disk_type_id       = "network-ssd"
+    disk_size          = 10 # Минимальный размер диска в ГБ
+  }
+
+  host {
+    zone      = yandex_vpc_subnet.app_subnet.zone
+    subnet_id = yandex_vpc_subnet.app_subnet.id
+  }
+
+  database {
+    name = "appdb" # Имя базы данных для приложений
+  }
+
+  user {
+    name     = "appuser" # Имя пользователя для приложений
+    password = random_password.db_password.result
+    permission {
+      database_name = "appdb"
+      roles         = ["ALL"] # Полные права на указанную базу данных
+    }
+  }
+
+  maintenance_window {
+    type = "ANYTIME" # Для PRESTABLE можно установить любое время
+  }
+
+  deletion_protection = false # Установите true для защиты от случайного удаления в production
+}
+
+# Виртуальная машина для CRM
+resource "yandex_compute_instance" "crm_vm" {
+  name        = "crm-vm"
+  platform_id = "standard-v3" # Современная платформа Intel Ice Lake
+  zone        = yandex_vpc_subnet.app_subnet.zone
+
+  resources {
+    cores  = 2 # Количество vCPU
+    memory = 2 # Объем RAM в ГБ
+  }
+
+  boot_disk {
+    initialize_params {
+      image_family = "ubuntu-2204-lts" # Семейство образов Ubuntu 22.04 LTS
+      size         = 10                # Размер загрузочного диска в ГБ
+      type         = "network-ssd"
+    }
+  }
+
+  network_interface {
+    subnet_id          = yandex_vpc_subnet.app_subnet.id
+    nat                = true # Включить NAT для доступа в интернет и получения публичного IP
+    security_group_ids = [yandex_vpc_security_group.app_sg.id]
+  }
+
+  metadata = {
+    # ВНИМАНИЕ: Убедитесь, что по пути ~/.ssh/id_rsa.pub находится ваш ПУБЛИЧНЫЙ SSH ключ.
+    # Стандартное имя файла для публичного ключа - id_rsa.pub.
+    # Если ваш публичный ключ действительно находится в файле с именем "id_rsa" (без .pub),
+    # измените file("~/.ssh/id_rsa.pub") на file("~/.ssh/id_rsa").
+    ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"
+  }
+}
+
+# Виртуальная машина для интернет-магазина
+resource "yandex_compute_instance" "store_vm" {
+  name        = "store-vm"
+  platform_id = "standard-v3"
+  zone        = yandex_vpc_subnet.app_subnet.zone
+
+  resources {
+    cores  = 2
+    memory = 2
+  }
+
+  boot_disk {
+    initialize_params {
+      image_family = "ubuntu-2204-lts"
+      size         = 10
+      type         = "network-ssd"
+    }
+  }
+
+  network_interface {
+    subnet_id          = yandex_vpc_subnet.app_subnet.id
+    nat                = true
+    security_group_ids = [yandex_vpc_security_group.app_sg.id]
+  }
+
+  metadata = {
+    # См. комментарий выше про ssh-keys для crm_vm
+    ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"
+  }
+}
+
+# Выходные данные (outputs)
+output "crm_vm_external_ip" {
+  description = "Внешний IP-адрес виртуальной машины для CRM"
+  value       = yandex_compute_instance.crm_vm.network_interface.0.nat_ip_address
+}
+
+output "store_vm_external_ip" {
+  description = "Внешний IP-адрес виртуальной машины для интернет-магазина"
+  value       = yandex_compute_instance.store_vm.network_interface.0.nat_ip_address
+}
+
+output "mysql_cluster_fqdn" {
+  description = "FQDN хоста кластера MySQL (для подключения используйте порт 3306)"
+  value       = yandex_mdb_mysql_cluster.app_mysql.host[0].fqdn # Для PRESTABLE обычно один хост
+}
+
+output "mysql_database_name" {
+  description = "Имя базы данных MySQL"
+  value       = yandex_mdb_mysql_cluster.app_mysql.database[0].name
+}
+
+output "mysql_user_name" {
+  description = "Имя пользователя MySQL"
+  value       = yandex_mdb_mysql_cluster.app_mysql.user[0].name
+}
+
+output "mysql_user_password" {
+  description = "Пароль пользователя MySQL (сгенерирован случайно)"
+  value       = random_password.db_password.result
+  sensitive   = true # Пометить как чувствительные данные
+}
+
+output "ssh_command_crm_vm" {
+  description = "Пример команды для подключения к CRM VM по SSH"
+  value       = "ssh ubuntu@${yandex_compute_instance.crm_vm.network_interface.0.nat_ip_address}"
+}
+
+output "ssh_command_store_vm" {
+  description = "Пример команды для подключения к Store VM по SSH"
+  value       = "ssh ubuntu@${yandex_compute_instance.store_vm.network_interface.0.nat_ip_address}"
+}

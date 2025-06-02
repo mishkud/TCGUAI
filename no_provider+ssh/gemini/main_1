@@ -1,0 +1,262 @@
+terraform {
+  required_providers {
+    yandex = {
+      source = "yandex-cloud/yandex"
+    }
+  }
+  required_version = ">= 0.13"
+}
+
+provider "yandex" {
+  zone = "<зона_доступности_по_умолчанию>"
+}
+# Файл: main.tf
+
+# ------------------------------------------------------------------------------
+# Сетевая инфраструктура
+# ------------------------------------------------------------------------------
+
+resource "yandex_vpc_network" "app_network" {
+  name = "app-network"
+  labels = {
+    tf-managed = "true"
+  }
+}
+
+resource "yandex_vpc_subnet" "app_subnet" {
+  name           = "app-subnet-ru-central1-a"
+  zone           = "ru-central1-a" # Вы можете выбрать другую зону доступности
+  network_id     = yandex_vpc_network.app_network.id
+  v4_cidr_blocks = ["10.1.0.0/24"] # Пример диапазона IP-адресов
+  labels = {
+    tf-managed = "true"
+  }
+}
+
+# ------------------------------------------------------------------------------
+# Группы безопасности
+# ------------------------------------------------------------------------------
+
+resource "yandex_vpc_security_group" "vm_sg" {
+  name        = "vm-security-group"
+  network_id  = yandex_vpc_network.app_network.id
+  description = "Группа безопасности для ВМ CRM и магазина"
+
+  # Разрешаем входящий SSH трафик (порт 22) отовсюду
+  ingress {
+    protocol       = "TCP"
+    port           = 22
+    v4_cidr_blocks = ["0.0.0.0/0"]
+    description    = "Разрешить SSH доступ"
+  }
+
+  # Разрешаем весь исходящий трафик
+  egress {
+    protocol       = "ANY"
+    v4_cidr_blocks = ["0.0.0.0/0"]
+    from_port      = 0
+    to_port        = 65535
+    description    = "Разрешить весь исходящий трафик"
+  }
+
+  labels = {
+    tf-managed = "true"
+  }
+}
+
+resource "yandex_vpc_security_group" "mysql_sg" {
+  name        = "mysql-security-group"
+  network_id  = yandex_vpc_network.app_network.id
+  description = "Группа безопасности для Managed MySQL"
+
+  # Разрешаем входящий трафик на порт MySQL (3306) из подсети ВМ
+  ingress {
+    protocol       = "TCP"
+    port           = 3306
+    v4_cidr_blocks = yandex_vpc_subnet.app_subnet.v4_cidr_blocks
+    description    = "Разрешить доступ к MySQL из внутренней сети"
+  }
+
+  # Можно также разрешить исходящий трафик, если это необходимо для обновлений и т.д.
+  # По умолчанию исходящий трафик для SG не ограничен, если не указано обратное.
+
+  labels = {
+    tf-managed = "true"
+  }
+}
+
+# ------------------------------------------------------------------------------
+# Виртуальная машина для CRM
+# ------------------------------------------------------------------------------
+
+resource "yandex_compute_instance" "crm_vm" {
+  name        = "crm-vm"
+  platform_id = "standard-v3" # Современная платформа Intel Ice Lake
+  zone        = yandex_vpc_subnet.app_subnet.zone
+  hostname    = "crm-vm"
+
+  resources {
+    cores  = 2  # Минимальное количество vCPU
+    memory = 2  # Минимальный объем RAM в ГБ
+    core_fraction = 20 # Гарантированная доля vCPU (20% = базовый уровень)
+  }
+
+  boot_disk {
+    initialize_params {
+      image_family = "ubuntu-2204-lts" # Последний образ Ubuntu 22.04 LTS
+      size         = 10                 # Размер диска в ГБ
+      type         = "network-hdd"      # Тип диска (можно "network-ssd" для большей производительности)
+    }
+  }
+
+  network_interface {
+    subnet_id          = yandex_vpc_subnet.app_subnet.id
+    nat                = true # Включить NAT для доступа в интернет и получения публичного IP
+    security_group_ids = [yandex_vpc_security_group.vm_sg.id]
+  }
+
+  metadata = {
+    # ВНИМАНИЕ: Файл ".ssh/id_rsa" должен содержать ваш ПУБЛИЧНЫЙ SSH-ключ.
+    # Пользователь по умолчанию для Ubuntu - "ubuntu".
+    ssh-keys = "ubuntu:${file(".ssh/id_rsa")}"
+  }
+
+  labels = {
+    tf-managed = "true"
+    purpose    = "crm"
+  }
+
+  scheduling_policy {
+    preemptible = false # Для продуктивных систем лучше false
+  }
+}
+
+# ------------------------------------------------------------------------------
+# Виртуальная машина для Интернет-магазина
+# ------------------------------------------------------------------------------
+
+resource "yandex_compute_instance" "store_vm" {
+  name        = "store-vm"
+  platform_id = "standard-v3"
+  zone        = yandex_vpc_subnet.app_subnet.zone
+  hostname    = "store-vm"
+
+  resources {
+    cores  = 2
+    memory = 2
+    core_fraction = 20
+  }
+
+  boot_disk {
+    initialize_params {
+      image_family = "ubuntu-2204-lts"
+      size         = 10
+      type         = "network-hdd"
+    }
+  }
+
+  network_interface {
+    subnet_id          = yandex_vpc_subnet.app_subnet.id
+    nat                = true
+    security_group_ids = [yandex_vpc_security_group.vm_sg.id]
+  }
+
+  metadata = {
+    # ВНИМАНИЕ: Файл ".ssh/id_rsa" должен содержать ваш ПУБЛИЧНЫЙ SSH-ключ.
+    # Пользователь по умолчанию для Ubuntu - "ubuntu".
+    ssh-keys = "ubuntu:${file(".ssh/id_rsa")}"
+  }
+
+  labels = {
+    tf-managed = "true"
+    purpose    = "online-store"
+  }
+
+  scheduling_policy {
+    preemptible = false
+  }
+}
+
+# ------------------------------------------------------------------------------
+# Managed база данных MySQL
+# ------------------------------------------------------------------------------
+
+resource "yandex_mdb_mysql_cluster" "app_mysql" {
+  name                = "app-mysql-cluster"
+  environment         = "PRODUCTION" # Или "PRESTABLE" для разработки/тестирования
+  network_id          = yandex_vpc_network.app_network.id
+  version             = "8.0"        # Укажите желаемую версию MySQL
+
+  resources {
+    resource_preset_id = "s2.micro"  # Минимальный класс хоста (2 vCPU, 2 GB RAM)
+    disk_type_id       = "network-ssd" # Тип диска
+    disk_size          = 10            # Размер диска в ГБ (минимальный обычно 10 ГБ)
+  }
+
+  host {
+    zone      = yandex_vpc_subnet.app_subnet.zone
+    subnet_id = yandex_vpc_subnet.app_subnet.id
+    name      = "mysql-host-a" # Имя хоста должно быть уникальным в рамках кластера
+  }
+
+  database {
+    name = "main_db" # Имя вашей основной базы данных
+  }
+
+  user {
+    name     = "db_user"
+    # ВНИМАНИЕ: Обязательно измените этот пароль!
+    password = "SuperStrongPassword123!"
+    permission {
+      database_name = "main_db"
+      roles         = ["ALL_PRIVILEGES"] # Предоставляет все права на указанную БД
+    }
+  }
+
+  maintenance_window {
+    type = "ANYTIME" # Или "WEEKLY" с указанием дня и часа
+  }
+
+  security_group_ids = [yandex_vpc_security_group.mysql_sg.id]
+  deletion_protection = false # Установите true для защиты от случайного удаления в production
+
+  labels = {
+    tf-managed = "true"
+  }
+}
+
+# ------------------------------------------------------------------------------
+# Выходные данные (Outputs)
+# ------------------------------------------------------------------------------
+
+output "crm_vm_external_ip" {
+  description = "Внешний IP-адрес виртуальной машины CRM"
+  value       = yandex_compute_instance.crm_vm.network_interface[0].nat_ip_address
+}
+
+output "store_vm_external_ip" {
+  description = "Внешний IP-адрес виртуальной машины интернет-магазина"
+  value       = yandex_compute_instance.store_vm.network_interface[0].nat_ip_address
+}
+
+output "mysql_cluster_fqdn" {
+  description = "FQDN (полное доменное имя) хоста кластера MySQL для подключения"
+  value       = yandex_mdb_mysql_cluster.app_mysql.host[0].fqdn
+  # Примечание: Если у вас несколько хостов, вам может понадобиться выбрать конкретный FQDN.
+  # Для одного хоста [0] будет работать.
+}
+
+output "mysql_database_name" {
+  description = "Имя базы данных MySQL"
+  value       = yandex_mdb_mysql_cluster.app_mysql.database[0].name
+}
+
+output "mysql_user_name" {
+  description = "Имя пользователя базы данных MySQL"
+  value       = yandex_mdb_mysql_cluster.app_mysql.user[0].name
+}
+
+output "mysql_user_password_warning" {
+  description = "Предупреждение о необходимости смены пароля пользователя MySQL"
+  value       = "Пароль для пользователя '${yandex_mdb_mysql_cluster.app_mysql.user[0].name}' задан как 'SuperStrongPassword123!'. ОБЯЗАТЕЛЬНО ИЗМЕНИТЕ ЕГО!"
+}

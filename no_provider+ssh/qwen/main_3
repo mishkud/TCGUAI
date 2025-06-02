@@ -1,0 +1,129 @@
+terraform {
+  required_providers {
+    yandex = {
+      source = "yandex-cloud/yandex"
+    }
+  }
+  required_version = ">= 0.13"
+}
+
+provider "yandex" {
+  zone = "<зона_доступности_по_умолчанию>"
+}
+# Генерация случайного пароля для MySQL
+resource "random_password" "db_password" {
+  length           = 16
+  special          = true
+  override_special = "_%@"
+}
+
+# Сеть
+resource "yandex_vpc_network" "default" {
+  name = "crm-shop-network"
+}
+
+# Подсеть
+resource "yandex_vpc_subnet" "default" {
+  name           = "crm-shop-subnet"
+  zone           = "ru-central1-a"
+  network_id     = yandex_vpc_network.default.id
+  v4_cidr_blocks = ["192.168.10.0/24"]
+}
+
+# Managed MySQL
+resource "yandex_mdb_mysql_cluster" "default" {
+  name        = "crm-shop-db"
+  environment = "PRESTABLE"
+  network_id  = yandex_vpc_network.default.id
+
+  host {
+    zone      = "ru-central1-a"
+    subnet_id = yandex_vpc_subnet.default.id
+  }
+
+  database {
+    name  = "maindb"
+    owner = "mysqluser"
+  }
+
+  user {
+    name     = "mysqluser"
+    password = random_password.db_password.result
+    permission {
+      database_name = "maindb"
+      roles         = ["ALL"]
+    }
+  }
+
+  mysql_config {
+    max_connections = 100
+  }
+
+  resources {
+    resource_preset_id = "s2.micro"
+    disk_type_id       = "network-hdd"
+    disk_size          = 10
+  }
+}
+
+# SSH ключ пользователя
+locals {
+  ssh_key_path = ".ssh/id_rsa.pub"
+}
+
+# Чтение публичного SSH-ключа
+data "tls_public_key" "ssh_key" {
+  private_key_openssh = file(local.ssh_key_path)
+}
+
+# Виртуальная машина для CRM
+resource "yandex_compute_instance" "crm_vm" {
+  name = "crm-vm"
+
+  resources {
+    cores  = 2
+    memory = 2
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = "fd8qv7jif59ivnq9i0em" # Ubuntu 22.04
+      size   = 10
+    }
+  }
+
+  network_interface {
+    subnet_id  = yandex_vpc_subnet.default.id
+    ip_address = "192.168.10.10"
+  }
+
+  metadata = {
+    ssh-keys = "ubuntu:${data.tls_public_key.ssh_key.public_key_openssh}"
+  }
+}
+
+# Виртуальная машина для интернет-магазина
+resource "yandex_compute_instance" "shop_vm" {
+  name = "shop-vm"
+
+  resources {
+    cores  = 2
+    memory = 2
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = "fd8qv7jif59ivnq9i0em" # Ubuntu 22.04
+      size   = 10
+    }
+  }
+
+  network_interface {
+    subnet_id  = yandex_vpc_subnet.default.id
+    ip_address = "192.168.10.20"
+  }
+
+  metadata = {
+    ssh-keys = "ubuntu:${data.tls_public_key.ssh_key.public_key_openssh}"
+  }
+}

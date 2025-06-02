@@ -1,0 +1,156 @@
+terraform {
+  required_providers {
+    yandex = {
+      source = "yandex-cloud/yandex"
+    }
+  }
+  required_version = ">= 0.13"
+}
+
+provider "yandex" {
+  zone = "<зона_доступности_по_умолчанию>"
+}
+# Переменные для настройки инфраструктуры
+
+variable "vm_user" {
+  description = "Имя пользователя на ВМ"
+  default     = "user"
+}
+
+variable "ssh_key_path" {
+  description = "Путь к SSH-ключу для подключения к ВМ"
+  default     = "~/.ssh/id_rsa"
+}
+
+variable "crm_vm_name" {
+  description = "Имя ВМ для CRM"
+  default     = "crm-vm"
+}
+
+variable "shop_vm_name" {
+  description = "Имя ВМ для интернет-магазина"
+  default     = "shop-vm"
+}
+
+variable "db_name" {
+  description = "Имя базы данных MySQL"
+  default     = "mydb"
+}
+
+variable "db_user" {
+  description = "Имя пользователя БД"
+  default     = "dbuser"
+}
+
+variable "db_password" {
+  description = "Пароль пользователя БД"
+  sensitive   = true
+  default     = "dbpassword"
+}
+
+# Сеть и подсеть
+
+resource "yandex_vpc_network" "main_network" {
+  name = "main-network"
+}
+
+resource "yandex_vpc_subnet" "main_subnet" {
+  name           = "main-subnet"
+  zone           = "ru-central1-a"
+  network_id     = yandex_vpc_network.main_network.id
+  v4_cidr_blocks = ["192.168.10.0/24"]
+}
+
+# Managed MySQL
+
+resource "yandex_mdb_mysql_cluster" "db_cluster" {
+  name        = var.db_name
+  environment = "PRODUCTION"
+  network_id  = yandex_vpc_network.main_network.id
+
+  mysql_config {
+    version = "8.0"
+  }
+
+  databases {
+    name  = var.db_name
+    owner = var.db_user
+  }
+
+  users {
+    name     = var.db_user
+    password = var.db_password
+    permission {
+      database_name = var.db_name
+      roles         = ["ALL"]
+    }
+  }
+
+  host {
+    zone             = "ru-central1-a"
+    subnet_id        = yandex_vpc_subnet.main_subnet.id
+    assign_public_ip = false
+  }
+}
+
+# Виртуальная машина для CRM
+
+resource "yandex_compute_instance" "crm_vm" {
+  name = var.crm_vm_name
+
+  zone = "ru-central1-a"
+
+  resources {
+    cores  = 2
+    memory = 2
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = "fd8kvu7v39gsoe2kfn5d" # Ubuntu 22.04 LTS
+      type     = "network-hdd"
+      size     = 10
+    }
+  }
+
+  network_interface {
+    subnet_id  = yandex_vpc_subnet.main_subnet.id
+    nat        = true
+    ip_address = "192.168.10.10"
+  }
+
+  metadata = {
+    ssh-keys = "${var.vm_user}:${file(var.ssh_key_path)}.pub"
+  }
+}
+
+# Виртуальная машина для интернет-магазина
+
+resource "yandex_compute_instance" "shop_vm" {
+  name = var.shop_vm_name
+
+  zone = "ru-central1-a"
+
+  resources {
+    cores  = 2
+    memory = 2
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = "fd8kvu7v39gsoe2kfn5d" # Ubuntu 22.04 LTS
+      type     = "network-hdd"
+      size     = 10
+    }
+  }
+
+  network_interface {
+    subnet_id  = yandex_vpc_subnet.main_subnet.id
+    nat        = true
+    ip_address = "192.168.10.11"
+  }
+
+  metadata = {
+    ssh-keys = "${var.vm_user}:${file(var.ssh_key_path)}.pub"
+  }
+}

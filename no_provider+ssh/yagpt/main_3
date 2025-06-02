@@ -1,0 +1,127 @@
+terraform {
+  required_providers {
+    yandex = {
+      source = "yandex-cloud/yandex"
+    }
+  }
+  required_version = ">= 0.13"
+}
+
+provider "yandex" {
+  zone = "<зона_доступности_по_умолчанию>"
+}
+# Создаем сеть и подсеть
+resource "yandex_vpc_network" "main_network" {
+  name = "main-network"
+}
+
+resource "yandex_vpc_subnet" "main_subnet" {
+  name           = "main-subnet"
+  network_id     = yandex_vpc_network.main_network.id
+  zone           = "ru-central1-a"
+  ipv4_cidr_block = "192.168.0.0/24"
+}
+
+# Создаем ВМ для CRM
+resource "yandex_compute_instance" "crm_server" {
+  name = "crm-server"
+  zone = "ru-central1-a"
+
+  platform_id = "standard-v2"
+  resources {
+    cores  = 2
+    memory = "4"
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = "fd83e81a-s1e2-4d31-b34d-e81f72ce49e5" # образ Ubuntu 22.04
+      size     = 50
+      type     = "network-ssd"
+    }
+  }
+
+  network_interface {
+    subnet_id = yandex_vpc_subnet.main_subnet.id
+    nat       = true
+  }
+
+  metadata = {
+    ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"
+  }
+}
+
+# Создаем ВМ для интернет-магазина
+resource "yandex_compute_instance" "shop_server" {
+  name = "shop-server"
+  zone = "ru-central1-a"
+
+  platform_id = "standard-v2"
+  resources {
+    cores  = 2
+    memory = "4"
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = "fd83e81a-s1e2-4d31-b34d-e81f72ce49e5" # образ Ubuntu 22.04
+      size     = 50
+      type     = "network-ssd"
+    }
+  }
+
+  network_interface {
+    subnet_id = yandex_vpc_subnet.main_subnet.id
+    nat       = true
+  }
+
+  metadata = {
+    ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"
+  }
+}
+
+# Создаем Managed MySQL
+resource "yandex_mdb_mysql_cluster" "mysql_cluster" {
+  name       = "mysql-cluster"
+  environment = "PRODUCTION"
+  network_id = yandex_vpc_network.main_network.id
+
+  config_spec {
+    version = "8.0"
+    resources {
+      resource_preset_id = "s2.micro"
+      disk_size          = 10
+      disk_type_id       = "network-ssd"
+    }
+  }
+
+  user {
+    name     = "admin"
+    password = "changeme"
+  }
+
+  backup_window {
+    day_of_week = "MONDAY"
+    hour        = 2
+  }
+}
+
+# Создаем правила файрвола для доступа к базе данных
+resource "yandex_vpc_security_group" "mysql_sg" {
+  name = "mysql-sg"
+  
+  ingress {
+    protocol = "tcp"
+    port     = 3306
+    
+    from_ip_address = yandex_compute_instance.crm_server.network_interface[0].ip_address
+    from_ip_address = yandex_compute_instance.shop_server.network_interface[0].ip_address
+  }
+}
+
+# Связываем файрвол с подсетью
+resource "yandex_vpc_subnet_security_group_label" "mysql_sg_label" {
+  subnet_id = yandex_vpc_subnet.main_subnet.id
+  security_group_id = yandex_vpc_security_group.mysql_sg.id
+}
+

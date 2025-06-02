@@ -1,0 +1,251 @@
+terraform {
+  required_providers {
+    yandex = {
+      source = "yandex-cloud/yandex"
+    }
+  }
+  required_version = ">= 0.13"
+}
+
+provider "yandex" {
+  zone = "<зона_доступности_по_умолчанию>"
+}
+# Получение информации о зоне доступности
+data "yandex_compute_zone" "default" {
+  name = "ru-central1-a"
+}
+
+# Получение информации об образе Ubuntu
+data "yandex_compute_image" "ubuntu" {
+  family = "ubuntu-2004-lts"
+}
+
+# Создание VPC сети
+resource "yandex_vpc_network" "main" {
+  name        = "main-network"
+  description = "Main network for CRM and shop infrastructure"
+}
+
+# Создание подсети
+resource "yandex_vpc_subnet" "main" {
+  name           = "main-subnet"
+  zone           = data.yandex_compute_zone.default.name
+  network_id     = yandex_vpc_network.main.id
+  v4_cidr_blocks = ["10.2.0.0/16"]
+}
+
+# Создание группы безопасности
+resource "yandex_vpc_security_group" "main" {
+  name        = "main-security-group"
+  description = "Security group for CRM, shop and database"
+  network_id  = yandex_vpc_network.main.id
+
+  ingress {
+    protocol       = "TCP"
+    description    = "SSH"
+    v4_cidr_blocks = ["0.0.0.0/0"]
+    port           = 22
+  }
+
+  ingress {
+    protocol       = "TCP"
+    description    = "HTTP"
+    v4_cidr_blocks = ["0.0.0.0/0"]
+    port           = 80
+  }
+
+  ingress {
+    protocol       = "TCP"
+    description    = "HTTPS"
+    v4_cidr_blocks = ["0.0.0.0/0"]
+    port           = 443
+  }
+
+  ingress {
+    protocol       = "TCP"
+    description    = "MySQL"
+    v4_cidr_blocks = ["10.2.0.0/16"]
+    port           = 3306
+  }
+
+  egress {
+    protocol       = "ANY"
+    description    = "All outbound traffic"
+    v4_cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+# Виртуальная машина для CRM
+resource "yandex_compute_instance" "crm" {
+  name        = "crm-server"
+  platform_id = "standard-v2"
+  zone        = data.yandex_compute_zone.default.name
+
+  resources {
+    cores  = 2
+    memory = 4
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = data.yandex_compute_image.ubuntu.id
+      size     = 20
+    }
+  }
+
+  network_interface {
+    subnet_id          = yandex_vpc_subnet.main.id
+    nat                = true
+    security_group_ids = [yandex_vpc_security_group.main.id]
+  }
+
+  metadata = {
+    ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"
+    user-data = <<-EOF
+      #cloud-config
+      package_update: true
+      packages:
+        - nginx
+        - mysql-client
+        - curl
+        - wget
+      runcmd:
+        - systemctl enable nginx
+        - systemctl start nginx
+      EOF
+  }
+}
+
+# Виртуальная машина для интернет-магазина
+resource "yandex_compute_instance" "shop" {
+  name        = "shop-server"
+  platform_id = "standard-v2"
+  zone        = data.yandex_compute_zone.default.name
+
+  resources {
+    cores  = 2
+    memory = 4
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = data.yandex_compute_image.ubuntu.id
+      size     = 20
+    }
+  }
+
+  network_interface {
+    subnet_id          = yandex_vpc_subnet.main.id
+    nat                = true
+    security_group_ids = [yandex_vpc_security_group.main.id]
+  }
+
+  metadata = {
+    ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"
+    user-data = <<-EOF
+      #cloud-config
+      package_update: true
+      packages:
+        - nginx
+        - mysql-client
+        - curl
+        - wget
+      runcmd:
+        - systemctl enable nginx
+        - systemctl start nginx
+      EOF
+  }
+}
+
+# Managed MySQL база данных
+resource "yandex_mdb_mysql_cluster" "main" {
+  name        = "main-mysql-cluster"
+  environment = "PRODUCTION"
+  network_id  = yandex_vpc_network.main.id
+  version     = "8.0"
+
+  resources {
+    resource_preset_id = "s2.micro"
+    disk_type_id       = "network-ssd"
+    disk_size          = 20
+  }
+
+  mysql_config = {
+    innodb_buffer_pool_size = 268435456
+  }
+
+  database {
+    name = "crm_db"
+  }
+
+  database {
+    name = "shop_db"
+  }
+
+  user {
+    name     = "crm_user"
+    password = "CRM_Password_123!"
+    permission {
+      database_name = "crm_db"
+      roles         = ["ALL"]
+    }
+  }
+
+  user {
+    name     = "shop_user"
+    password = "Shop_Password_123!"
+    permission {
+      database_name = "shop_db"
+      roles         = ["ALL"]
+    }
+  }
+
+  host {
+    zone             = data.yandex_compute_zone.default.name
+    subnet_id        = yandex_vpc_subnet.main.id
+    assign_public_ip = false
+  }
+
+  security_group_ids = [yandex_vpc_security_group.main.id]
+}
+
+# Outputs для получения важной информации
+output "crm_external_ip" {
+  description = "External IP address of CRM server"
+  value       = yandex_compute_instance.crm.network_interface.0.nat_ip_address
+}
+
+output "shop_external_ip" {
+  description = "External IP address of shop server"
+  value       = yandex_compute_instance.shop.network_interface.0.nat_ip_address
+}
+
+output "crm_internal_ip" {
+  description = "Internal IP address of CRM server"
+  value       = yandex_compute_instance.crm.network_interface.0.ip_address
+}
+
+output "shop_internal_ip" {
+  description = "Internal IP address of shop server"
+  value       = yandex_compute_instance.shop.network_interface.0.ip_address
+}
+
+output "mysql_host" {
+  description = "MySQL cluster host"
+  value       = yandex_mdb_mysql_cluster.main.host.0.fqdn
+}
+
+output "mysql_port" {
+  description = "MySQL cluster port"
+  value       = 3306
+}
+
+output "ssh_connection_crm" {
+  description = "SSH connection string for CRM server"
+  value       = "ssh ubuntu@${yandex_compute_instance.crm.network_interface.0.nat_ip_address}"
+}
+
+output "ssh_connection_shop" {
+  description = "SSH connection string for shop server"
+  value       = "ssh ubuntu@${yandex_compute_instance.shop.network_interface.0.nat_ip_address}"
+}

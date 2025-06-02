@@ -1,0 +1,105 @@
+terraform {
+  required_providers {
+    yandex = {
+      source = "yandex-cloud/yandex"
+    }
+  }
+  required_version = ">= 0.13"
+}
+
+provider "yandex" {
+  zone = "<зона_доступности_по_умолчанию>"
+}
+# Настройка сети
+resource "yandex_vpc_network" "crm-network" {
+  name = "crm-network"
+}
+
+resource "yandex_vpc_subnet" "crm-subnet" {
+  zone           = "ru-central1-a"
+  network_id     = yandex_vpc_network.crm-network.id
+  v4_cidr_blocks = ["10.130.0.0/24"]
+  name           = "crm-subnet"
+}
+
+# Базовые ресурсы
+locals {
+  ssh_public_key = file(".ssh/id_rsa.pub")
+}
+
+# Создание виртуальной машины для CRM
+resource "yandex_compute_instance" "crm-instance" {
+  name                  = "crm-server"
+  platform_id           = "standard-v3"
+  resources {
+    cores  = 2
+    memory = 8
+  }
+  boot_disk {
+    initialize_params {
+      image_id = "fd84lnt7nub7ls0m5mks" # Ubuntu Server 22.04 LTS (HVM)
+    }
+  }
+  network_interface {
+    subnet_id    = yandex_vpc_subnet.crm-subnet.id
+    nat          = true
+  }
+  metadata = {
+    ssh-keys = "${local.ssh_public_key}"
+  }
+}
+
+# Создаем базу данных MySQL
+resource "yandex_mdb_mysql_cluster" "mysql-cluster" {
+  name                     = "mysql-crm-store"
+  environment              = "PRODUCTION"
+  version                   = "8_0"
+  allocated_storage        = 10
+  mysql_config {
+    sql_mode = [
+      "STRICT_TRANS_TABLES",
+      "NO_ENGINE_SUBSTITUTION"
+    ]
+  }
+  host {
+    zone               = "ru-central1-a"
+    assign_public_ip   = false
+    subnet_id          = yandex_vpc_subnet.crm-subnet.id
+  }
+  user {
+    name     = "crm-user"
+    password = random_password.mysql_user.result
+  }
+  database {
+    name = "crm-database"
+  }
+}
+
+# Генерируем случайный пароль для базы данных
+resource "random_password" "mysql_user" {
+  length           = 16
+  special          = true
+  override_special = "_%@"
+}
+
+# Создание виртуальной машины для интернет-магазина
+resource "yandex_compute_instance" "shop-instance" {
+  name                  = "shop-server"
+  platform_id           = "standard-v3"
+  resources {
+    cores  = 2
+    memory = 8
+  }
+  boot_disk {
+    initialize_params {
+      image_id = "fd84lnt7nub7ls0m5mks" # Ubuntu Server 22.04 LTS (HVM)
+    }
+  }
+  network_interface {
+    subnet_id    = yandex_vpc_subnet.crm-subnet.id
+    nat          = true
+  }
+  metadata = {
+    ssh-keys = "${local.ssh_public_key}"
+  }
+}

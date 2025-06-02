@@ -1,0 +1,137 @@
+terraform {
+  required_providers {
+    yandex = {
+      source = "yandex-cloud/yandex"
+    }
+  }
+  required_version = ">= 0.13"
+}
+
+provider "yandex" {
+  zone = "<зона_доступности_по_умолчанию>"
+}
+# Описание ресурсов
+
+variable "ssh_public_key_path" {
+  description = "Path to the public key file for VM access."
+  default     = "~/.ssh/id_rsa.pub"
+}
+
+locals {
+  ssh_public_key = chomp(file(var.ssh_public_key_path))
+}
+
+resource "yandex_compute_instance_group" "crm-instance-group" {
+  name               = "crm-instances"
+  instance_template {
+    platform_id      = "standard-v3"
+    boot_disk {
+      initialize_params {
+        image_id = data.yandex_compute_image.centos.id
+      }
+    }
+    resources {
+      cores           = 2
+      memory          = 8
+    }
+    network_interface {
+      subnet_ids       = [data.yandex_vpc_subnet.default.id]
+      nat              = true
+    }
+    metadata = {
+      ssh-keys = local.ssh_public_key
+    }
+  }
+  scale_policy {
+    fixed_scale {
+      size = 1
+    }
+  }
+  load_balancer_spec {}
+}
+
+resource "yandex_compute_instance_group" "shop-instance-group" {
+  name               = "shop-instances"
+  instance_template {
+    platform_id      = "standard-v3"
+    boot_disk {
+      initialize_params {
+        image_id = data.yandex_compute_image.centos.id
+      }
+    }
+    resources {
+      cores           = 2
+      memory          = 8
+    }
+    network_interface {
+      subnet_ids       = [data.yandex_vpc_subnet.default.id]
+      nat              = true
+    }
+    metadata = {
+      ssh-keys = local.ssh_public_key
+    }
+  }
+  scale_policy {
+    fixed_scale {
+      size = 1
+    }
+  }
+  load_balancer_spec {}
+}
+
+resource "yandex_mdb_mysql_cluster" "mysql-cluster" {
+  name                = "mysql-cluster"
+  environment         = "PRODUCTION"
+  version             = "8.0"
+  mysql_config_8_0 {
+    max_connections   = 1000
+  }
+  host {
+    zone            = "ru-central1-a"
+    assign_public_ip = false
+  }
+  resources {
+    resource_purpose = "HOST"
+    type              = "memory-optimized-b2-medium"
+  }
+  database {
+    name = "crm_db"
+  }
+  user {
+    name     = "crm_user"
+    password = random_password.mysql-password.result
+  }
+  backup_window_start {
+    hours = 1
+  }
+}
+
+output "instance_crm_address" {
+  value = yandex_compute_instance_group.crm-instance-group.instances[0].network_interfaces[0].nat_ip_address
+}
+
+output "instance_shop_address" {
+  value = yandex_compute_instance_group.shop-instance-group.instances[0].network_interfaces[0].nat_ip_address
+}
+
+output "mysql_connection_string" {
+  value = format("mysql://%s:%s@%s/%s",
+                 yandx_mdb_mysql_cluster.mysql-cluster.user[0].name,
+                 yandx_mdb_mysql_cluster.mysql-cluster.user[0].password,
+                 yandx_mdb_mysql_cluster.mysql-cluster.host[0].fqdn,
+                 yandx_mdb_mysql_cluster.mysql-cluster.database[0].name)
+}
+
+data "yandex_compute_image" "centos" {
+  family = "centos-7"
+}
+
+data "yandex_vpc_subnet" "default" {
+  name = "default-ru-central1a"
+}
+
+resource "random_password" "mysql-password" {
+  length           = 16
+  special          = true
+  override_special = "_%=+"
+}
