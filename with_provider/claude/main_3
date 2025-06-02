@@ -1,0 +1,282 @@
+terraform {
+  required_providers {
+    yandex = {
+      source  = "yandex-cloud/yandex"
+      version = "~> 0.100"
+    }
+  }
+  required_version = ">= 1.0"
+}
+
+# Конфигурация провайдера Yandex Cloud
+provider "yandex" {
+  # Учетные данные будут взяты из переменных окружения или CLI
+  # YC_TOKEN, YC_CLOUD_ID, YC_FOLDER_ID
+}
+
+# Получение данных о доступных зонах доступности
+data "yandex_compute_zones" "available" {}
+
+# Получение данных об образе Ubuntu 22.04
+data "yandex_compute_image" "ubuntu" {
+  family = "ubuntu-2204-lts"
+}
+
+# Создание VPC сети
+resource "yandex_vpc_network" "main" {
+  name        = "main-network"
+  description = "Main network for CRM and e-commerce infrastructure"
+}
+
+# Создание подсети
+resource "yandex_vpc_subnet" "main" {
+  name           = "main-subnet"
+  zone           = data.yandex_compute_zones.available.zones[0]
+  network_id     = yandex_vpc_network.main.id
+  v4_cidr_blocks = ["10.0.1.0/24"]
+  description    = "Main subnet for infrastructure"
+}
+
+# Группа безопасности для веб-серверов
+resource "yandex_vpc_security_group" "web" {
+  name        = "web-security-group"
+  description = "Security group for web servers"
+  network_id  = yandex_vpc_network.main.id
+
+  # Исходящий трафик
+  egress {
+    protocol       = "ANY"
+    description    = "Allow all outbound traffic"
+    v4_cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # Входящий SSH
+  ingress {
+    protocol       = "TCP"
+    description    = "SSH access"
+    v4_cidr_blocks = ["0.0.0.0/0"]
+    port           = 22
+  }
+
+  # Входящий HTTP
+  ingress {
+    protocol       = "TCP"
+    description    = "HTTP access"
+    v4_cidr_blocks = ["0.0.0.0/0"]
+    port           = 80
+  }
+
+  # Входящий HTTPS
+  ingress {
+    protocol       = "TCP"
+    description    = "HTTPS access"
+    v4_cidr_blocks = ["0.0.0.0/0"]
+    port           = 443
+  }
+}
+
+# Группа безопасности для базы данных
+resource "yandex_vpc_security_group" "db" {
+  name        = "db-security-group"
+  description = "Security group for MySQL database"
+  network_id  = yandex_vpc_network.main.id
+
+  # Исходящий трафик
+  egress {
+    protocol       = "ANY"
+    description    = "Allow all outbound traffic"
+    v4_cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # Входящий MySQL трафик из подсети
+  ingress {
+    protocol       = "TCP"
+    description    = "MySQL access from subnet"
+    v4_cidr_blocks = ["10.0.1.0/24"]
+    port           = 3306
+  }
+}
+
+# Виртуальная машина для CRM
+resource "yandex_compute_instance" "crm" {
+  name        = "crm-server"
+  platform_id = "standard-v3"
+  zone        = data.yandex_compute_zones.available.zones[0]
+
+  resources {
+    cores  = 2
+    memory = 4
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = data.yandex_compute_image.ubuntu.id
+      size     = 20
+      type     = "network-hdd"
+    }
+  }
+
+  network_interface {
+    subnet_id          = yandex_vpc_subnet.main.id
+    nat                = true
+    security_group_ids = [yandex_vpc_security_group.web.id]
+  }
+
+  metadata = {
+    ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"
+    user-data = <<-EOF
+      #cloud-config
+      package_update: true
+      packages:
+        - nginx
+        - mysql-client
+      runcmd:
+        - systemctl enable nginx
+        - systemctl start nginx
+        - echo "<h1>CRM Server</h1>" > /var/www/html/index.html
+    EOF
+  }
+
+  labels = {
+    purpose = "crm"
+  }
+}
+
+# Виртуальная машина для интернет-магазина
+resource "yandex_compute_instance" "ecommerce" {
+  name        = "ecommerce-server"
+  platform_id = "standard-v3"
+  zone        = data.yandex_compute_zones.available.zones[0]
+
+  resources {
+    cores  = 2
+    memory = 4
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = data.yandex_compute_image.ubuntu.id
+      size     = 20
+      type     = "network-hdd"
+    }
+  }
+
+  network_interface {
+    subnet_id          = yandex_vpc_subnet.main.id
+    nat                = true
+    security_group_ids = [yandex_vpc_security_group.web.id]
+  }
+
+  metadata = {
+    ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"
+    user-data = <<-EOF
+      #cloud-config
+      package_update: true
+      packages:
+        - nginx
+        - mysql-client
+        - php-fpm
+        - php-mysql
+      runcmd:
+        - systemctl enable nginx
+        - systemctl start nginx
+        - systemctl enable php8.1-fpm
+        - systemctl start php8.1-fpm
+        - echo "<h1>E-commerce Server</h1>" > /var/www/html/index.html
+    EOF
+  }
+
+  labels = {
+    purpose = "ecommerce"
+  }
+}
+
+# Managed MySQL база данных
+resource "yandex_mdb_mysql_cluster" "main" {
+  name        = "main-mysql-cluster"
+  environment = "PRODUCTION"
+  network_id  = yandex_vpc_network.main.id
+  version     = "8.0"
+
+  resources {
+    resource_preset_id = "s2.micro"
+    disk_type_id       = "network-hdd"
+    disk_size          = 20
+  }
+
+  host {
+    zone             = data.yandex_compute_zones.available.zones[0]
+    subnet_id        = yandex_vpc_subnet.main.id
+    assign_public_ip = false
+  }
+
+  mysql_config = {
+    sql_mode                      = "ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_DATE,NO_ZERO_IN_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION"
+    max_connections              = 100
+    default_authentication_plugin = "mysql_native_password"
+  }
+
+  security_group_ids = [yandex_vpc_security_group.db.id]
+}
+
+# База данных для CRM
+resource "yandex_mdb_mysql_database" "crm_db" {
+  cluster_id = yandex_mdb_mysql_cluster.main.id
+  name       = "crm_database"
+}
+
+# База данных для интернет-магазина
+resource "yandex_mdb_mysql_database" "ecommerce_db" {
+  cluster_id = yandex_mdb_mysql_cluster.main.id
+  name       = "ecommerce_database"
+}
+
+# Пользователь базы данных для CRM
+resource "yandex_mdb_mysql_user" "crm_user" {
+  cluster_id = yandex_mdb_mysql_cluster.main.id
+  name       = "crm_user"
+  password   = "CrmPassword123!"
+  
+  permission {
+    database_name = yandex_mdb_mysql_database.crm_db.name
+    roles         = ["ALL"]
+  }
+}
+
+# Пользователь базы данных для интернет-магазина
+resource "yandex_mdb_mysql_user" "ecommerce_user" {
+  cluster_id = yandex_mdb_mysql_cluster.main.id
+  name       = "ecommerce_user"
+  password   = "EcommercePassword123!"
+  
+  permission {
+    database_name = yandex_mdb_mysql_database.ecommerce_db.name
+    roles         = ["ALL"]
+  }
+}
+
+# Выходные данные
+output "crm_server_ip" {
+  value       = yandex_compute_instance.crm.network_interface.0.nat_ip_address
+  description = "Public IP address of CRM server"
+}
+
+output "ecommerce_server_ip" {
+  value       = yandex_compute_instance.ecommerce.network_interface.0.nat_ip_address
+  description = "Public IP address of E-commerce server"
+}
+
+output "mysql_cluster_fqdn" {
+  value       = yandex_mdb_mysql_cluster.main.host.0.fqdn
+  description = "FQDN of MySQL cluster"
+}
+
+output "ssh_connection_crm" {
+  value       = "ssh ubuntu@${yandex_compute_instance.crm.network_interface.0.nat_ip_address}"
+  description = "SSH command to connect to CRM server"
+}
+
+output "ssh_connection_ecommerce" {
+  value       = "ssh ubuntu@${yandex_compute_instance.ecommerce.network_interface.0.nat_ip_address}"
+  description = "SSH command to connect to E-commerce server"
+}
