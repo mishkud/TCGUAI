@@ -1,0 +1,111 @@
+provider "yandex" {
+  token     = var.yc_token
+  cloud_id  = var.cloud_id
+  folder_id = var.folder_id
+  zone      = var.zone
+}
+
+# Переменные — см. секцию "Как использовать"
+variable "yc_token" {}
+variable "cloud_id" {}
+variable "folder_id" {}
+variable "zone" {}
+
+# Сеть
+resource "yandex_vpc_network" "default" {
+  name = "crm-shop-network"
+}
+
+# Подсеть
+resource "yandex_vpc_subnet" "default" {
+  name           = "crm-shop-subnet"
+  zone           = var.zone
+  network_id     = yandex_vpc_network.default.id
+  v4_cidr_blocks = ["192.168.10.0/24"]
+}
+
+# База данных MySQL
+resource "yandex_mdb_mysql_cluster" "default" {
+  name        = "crm-shop-db"
+  environment = "PRESTABLE"
+  network_id  = yandex_vpc_network.default.id
+
+  version = "8.0"
+
+  resources {
+    resource_preset_id = "s2.micro"
+    disk_size          = 10
+    disk_type_id       = "network-hdd"
+  }
+
+  database {
+    name = "maindb"
+  }
+
+  user {
+    name     = "admin"
+    password = "your_db_password"
+    permission {
+      database_name = "maindb"
+      roles         = ["ALL"]
+    }
+  }
+
+  host {
+    zone             = var.zone
+    subnet_id        = yandex_vpc_subnet.default.id
+    assign_public_ip = false
+  }
+}
+
+# ВМ для CRM
+resource "yandex_compute_instance" "crm_vm" {
+  name = "crm-vm"
+
+  resources {
+    cores  = 2
+    memory = 2
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = "fd8f550v8fv9ud9u7tjq" # Ubuntu 22.04
+      size     = 10
+    }
+  }
+
+  network_interface {
+    subnet_id  = yandex_vpc_subnet.default.id
+    nat        = true
+  }
+
+  metadata = {
+    ssh-keys = file("${var.ssh_public_key_path}")
+  }
+}
+
+# ВМ для интернет-магазина
+resource "yandex_compute_instance" "shop_vm" {
+  name = "shop-vm"
+
+  resources {
+    cores  = 2
+    memory = 2
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = "fd8f550v8fv9ud9u7tjq" # Ubuntu 22.04
+      size     = 10
+    }
+  }
+
+  network_interface {
+    subnet_id  = yandex_vpc_subnet.default.id
+    nat        = true
+  }
+
+  metadata = {
+    ssh-keys = file("${var.ssh_public_key_path}")
+  }
+}

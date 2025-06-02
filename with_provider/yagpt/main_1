@@ -1,0 +1,114 @@
+# Yandex Cloud Provider Configuration
+provider "yandex" {
+  # Укажите ваш IAM-токен Yandex Cloud
+  service_account_key = file("~/.yc/service-account-key.json")
+  cloud_id            = "your-cloud-id"
+  folder_id           = "your-folder-id"
+}
+
+# Создание сети
+resource "yandex_vpc_network" "main_network" {
+  name = "main-network"
+}
+
+# Создание подсети
+resource "yandex_vpc_subnet" "main_subnet" {
+  name       = "main-subnet"
+  network_id = yandex_vpc_network.main_network.id
+  zone       = "ru-central1-a"
+  ipv4_range = "192.168.0.0/24"
+}
+
+# Создание безопасности группы
+resource "yandex_vpc_security_group" "sg" {
+  name = "security-group"
+
+  ingress {
+    protocol    = "tcp"
+    port        = 22
+    from_port   = 22
+    to_port     = 22
+    v4_cidr_list = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    protocol    = "tcp"
+    port        = 3306
+    from_port   = 3306
+    to_port     = 3306
+    v4_cidr_list = ["192.168.0.0/24"]
+  }
+}
+
+# Виртуальная машина для CRM
+resource "yandex_compute_instance" "crm_vm" {
+  name = "crm-vm"
+  zone = "ru-central1-a"
+
+  resources {
+    memory = "8"
+    cores  = 2
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = "fd83e82a-s9e5-4b7a-904e-example"
+      size     = 50
+    }
+  }
+
+  network_interface {
+    subnet_id = yandex_vpc_subnet.main_subnet.id
+    security_group_ids = [yandex_vpc_security_group.sg.id]
+  }
+}
+
+# Виртуальная машина для интернет-магазина
+resource "yandex_compute_instance" "shop_vm" {
+  name = "shop-vm"
+  zone = "ru-central1-a"
+
+  resources {
+    memory = "16"
+    cores  = 4
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = "fd83e82a-s9e5-4b7a-904e-example"
+      size     = 100
+    }
+  }
+
+  network_interface {
+    subnet_id = yandex_vpc_subnet.main_subnet.id
+    security_group_ids = [yandex_vpc_security_group.sg.id]
+  }
+}
+
+# Managed база данных MySQL
+resource "yandex_mdb_mysql_cluster" "mysql_cluster" {
+  name       = "mysql-cluster"
+  environment = "PRODUCTION"
+  network_id = yandex_vpc_network.main_network.id
+
+  config_spec {
+    resources {
+      resource_preset_id = "b1.medium"
+    }
+    disk_spec {
+      type = "network-ssd"
+      size = 100
+    }
+  }
+
+  user {
+    name     = "admin"
+    password = "your-mysql-password"
+  }
+
+  host {
+    zone = "ru-central1-a"
+  }
+}
+

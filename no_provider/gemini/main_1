@@ -1,0 +1,278 @@
+terraform {
+  required_providers {
+    yandex = {
+      source = "yandex-cloud/yandex"
+    }
+  }
+  required_version = ">= 0.13"
+}
+
+provider "yandex" {
+  zone = "<зона_доступности_по_умолчанию>"
+}
+
+# ------------------------------------------------------------------------------
+# Входные переменные
+# ------------------------------------------------------------------------------
+
+variable "yc_zone" {
+  description = "Зона доступности Yandex Cloud"
+  type        = string
+  default     = "ru-central1-a"
+}
+
+variable "vm_image_family_crm" {
+  description = "Семейство образа для ВМ CRM (например, ubuntu-2004-lts)"
+  type        = string
+  default     = "ubuntu-2004-lts" # Рекомендуется проверить актуальность
+}
+
+variable "vm_image_family_shop" {
+  description = "Семейство образа для ВM интернет-магазина (например, ubuntu-2004-lts)"
+  type        = string
+  default     = "ubuntu-2004-lts" # Рекомендуется проверить актуальность
+}
+
+variable "vm_user" {
+  description = "Имя пользователя для подключения к ВМ по SSH"
+  type        = string
+  default     = "ubuntu" # Для образов Ubuntu, для других может отличаться
+}
+
+variable "ssh_key_path" {
+  description = "Путь к публичному SSH ключу для доступа к ВМ. Пример: '~/.ssh/id_rsa.pub'"
+  type        = string
+  # ПОЛЬЗОВАТЕЛЬ ДОЛЖЕН УКАЗАТЬ ЭТО ЗНАЧЕНИЕ
+  # Например: sensitive = true # если ключ содержит чувствительную информацию
+  # default     = "~/.ssh/yc_key.pub" # Замените на ваш путь или оставьте пустым, если будете добавлять ключ вручную
+}
+
+variable "mysql_user" {
+  description = "Имя пользователя для базы данных MySQL"
+  type        = string
+  default     = "dbuser"
+}
+
+# Раскомментируйте и установите пароль, если не хотите использовать генерируемый
+# variable "mysql_password" {
+#   description = "Пароль для пользователя базы данных MySQL. ОБЯЗАТЕЛЬНО ИЗМЕНИТЕ И СОХРАНИТЕ!"
+#   type        = string
+#   sensitive   = true
+#   # ПОЛЬЗОВАТЕЛЬ ДОЛЖЕН УКАЗАТЬ ЭТО ЗНАЧЕНИЕ, ЕСЛИ НЕ ИСПОЛЬЗУЕТСЯ ГЕНЕРИРУЕМЫЙ
+# }
+
+variable "mysql_db_name" {
+  description = "Имя базы данных MySQL"
+  type        = string
+  default     = "appdb"
+}
+
+# ------------------------------------------------------------------------------
+# Сетевая инфраструктура
+# ------------------------------------------------------------------------------
+
+resource "yandex_vpc_network" "app_network" {
+  name = "app-network"
+}
+
+resource "yandex_vpc_subnet" "app_subnet" {
+  name           = "app-subnet"
+  zone           = var.yc_zone
+  network_id     = yandex_vpc_network.app_network.id
+  v4_cidr_blocks = ["10.0.1.0/24"]
+}
+
+# ------------------------------------------------------------------------------
+# Данные: Образы виртуальных машин
+# ------------------------------------------------------------------------------
+
+data "yandex_compute_image" "crm_image" {
+  family = var.vm_image_family_crm
+}
+
+data "yandex_compute_image" "shop_image" {
+  family = var.vm_image_family_shop
+}
+
+# ------------------------------------------------------------------------------
+# Виртуальная машина для CRM
+# ------------------------------------------------------------------------------
+
+resource "yandex_compute_instance" "crm_vm" {
+  name        = "crm-vm"
+  platform_id = "standard-v3" # Можно выбрать другую платформу
+  zone        = var.yc_zone
+
+  resources {
+    cores  = 2
+    memory = 2
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = data.yandex_compute_image.crm_image.id
+      size     = 20 # Размер диска в ГБ
+      type     = "network-ssd"
+    }
+  }
+
+  network_interface {
+    subnet_id = yandex_vpc_subnet.app_subnet.id
+    nat       = true # Включить NAT для доступа в интернет
+  }
+
+  metadata = {
+    user-data = <<-EOT
+      #cloud-config
+      users:
+        - name: ${var.vm_user}
+          groups: sudo
+          shell: /bin/bash
+          sudo: ['ALL=(ALL) NOPASSWD:ALL']
+          ssh_authorized_keys:
+            - ${trimspace(file(var.ssh_key_path))}
+    EOT
+  }
+
+  scheduling_policy {
+    preemptible = false # Установите true для прерываемых ВМ (дешевле, но могут быть остановлены)
+  }
+}
+
+# ------------------------------------------------------------------------------
+# Виртуальная машина для Интернет-магазина
+# ------------------------------------------------------------------------------
+
+resource "yandex_compute_instance" "shop_vm" {
+  name        = "shop-vm"
+  platform_id = "standard-v3"
+  zone        = var.yc_zone
+
+  resources {
+    cores  = 2
+    memory = 2
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = data.yandex_compute_image.shop_image.id
+      size     = 20 # Размер диска в ГБ
+      type     = "network-ssd"
+    }
+  }
+
+  network_interface {
+    subnet_id = yandex_vpc_subnet.app_subnet.id
+    nat       = true
+  }
+
+  metadata = {
+    user-data = <<-EOT
+      #cloud-config
+      users:
+        - name: ${var.vm_user}
+          groups: sudo
+          shell: /bin/bash
+          sudo: ['ALL=(ALL) NOPASSWD:ALL']
+          ssh_authorized_keys:
+            - ${trimspace(file(var.ssh_key_path))}
+    EOT
+  }
+
+  scheduling_policy {
+    preemptible = false
+  }
+}
+
+# ------------------------------------------------------------------------------
+# Managed MySQL
+# ------------------------------------------------------------------------------
+
+resource "random_password" "mysql_password_generated" {
+  length           = 16
+  special          = true
+  override_special = "_%@"
+}
+
+resource "yandex_mdb_mysql_cluster" "mysql_db" {
+  name               = "mysql-db"
+  environment        = "PRODUCTION" # Или PRESTABLE
+  network_id         = yandex_vpc_network.app_network.id
+  version            = "8.0"       # Укажите нужную версию MySQL
+
+  resources {
+    resource_preset_id = "s2.micro" # Минимальный тип, выберите подходящий
+    disk_type_id       = "network-ssd"
+    disk_size          = 10 # Минимальный размер диска в ГБ
+  }
+
+  host {
+    zone      = var.yc_zone
+    subnet_id = yandex_vpc_subnet.app_subnet.id
+  }
+
+  database {
+    name = var.mysql_db_name
+  }
+
+  user {
+    name     = var.mysql_user
+    # Если переменная mysql_password определена, используется она, иначе - сгенерированный пароль
+    password = try(var.mysql_password, random_password.mysql_password_generated.result)
+    permission {
+      database_name = var.mysql_db_name
+      roles         = ["ALL"] # Можно ограничить права
+    }
+  }
+
+  maintenance_window {
+    type = "ANYTIME" # Или WEEKLY для указания конкретного времени
+  }
+
+  deletion_protection = false # Установите true для защиты от случайного удаления в production
+}
+
+# ------------------------------------------------------------------------------
+# Выходные данные
+# ------------------------------------------------------------------------------
+
+output "crm_vm_external_ip" {
+  description = "Внешний IP-адрес виртуальной машины CRM"
+  value       = yandex_compute_instance.crm_vm.network_interface.0.nat_ip_address
+}
+
+output "shop_vm_external_ip" {
+  description = "Внешний IP-адрес виртуальной машины интернет-магазина"
+  value       = yandex_compute_instance.shop_vm.network_interface.0.nat_ip_address
+}
+
+output "mysql_db_fqdn" {
+  description = "FQDN (полное доменное имя) хоста кластера MySQL"
+  value       = yandex_mdb_mysql_cluster.mysql_db.host[0].fqdn # Для подключения к первому хосту
+}
+
+output "mysql_db_name" {
+  description = "Имя базы данных MySQL"
+  value       = var.mysql_db_name
+}
+
+output "mysql_db_user" {
+  description = "Имя пользователя базы данных MySQL"
+  value       = var.mysql_user
+}
+
+output "mysql_db_password" {
+  description = "Пароль пользователя базы данных MySQL. СОХРАНИТЕ ЕГО!"
+  value       = yandex_mdb_mysql_cluster.mysql_db.user[0].password
+  sensitive   = true
+}
+
+output "ssh_command_crm" {
+  description = "Команда для подключения к CRM VM по SSH"
+  value       = "ssh ${var.vm_user}@${yandex_compute_instance.crm_vm.network_interface.0.nat_ip_address}"
+}
+
+output "ssh_command_shop" {
+  description = "Команда для подключения к Shop VM по SSH"
+  value       = "ssh ${var.vm_user}@${yandex_compute_instance.shop_vm.network_interface.0.nat_ip_address}"
+}

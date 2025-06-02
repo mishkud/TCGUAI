@@ -1,0 +1,298 @@
+terraform {
+  required_providers {
+    yandex = {
+      source  = "yandex-cloud/yandex"
+      version = ">= 0.80.0" # Рекомендуется использовать актуальную версию
+    }
+  }
+}
+
+// Переменные, которые пользователь ДОЛЖЕН или МОЖЕТ изменить
+variable "yc_token" {
+  description = "Yandex Cloud OAuth token. Можно также установить через переменную окружения YC_TOKEN."
+  type        = string
+  sensitive   = true
+  // default     = "ВАШ_YC_TOKEN" // Раскомментируйте и вставьте ваш токен, если не используете переменные окружения
+}
+
+variable "yc_cloud_id" {
+  description = "Yandex Cloud ID. Можно также установить через переменную окружения YC_CLOUD_ID."
+  type        = string
+  // default     = "ВАШ_YC_CLOUD_ID" // Раскомментируйте и вставьте ваш cloud_id
+}
+
+variable "yc_folder_id" {
+  description = "Yandex Cloud Folder ID. Можно также установить через переменную окружения YC_FOLDER_ID."
+  type        = string
+  // default     = "ВАШ_YC_FOLDER_ID" // Раскомментируйте и вставьте ваш folder_id
+}
+
+variable "yc_zone" {
+  description = "Зона доступности Yandex Cloud для развертывания ресурсов."
+  type        = string
+  default     = "ru-central1-a"
+}
+
+variable "ssh_public_key_content" {
+  description = "Содержимое вашего публичного SSH ключа для доступа к ВМ. Например, 'ssh-rsa AAAA... user@example.com'"
+  type        = string
+  sensitive   = true
+  // default     = "СОДЕРЖИМОЕ_ВАШЕГО_SSH_PUBLIC_KEY" // Раскомментируйте и вставьте ваш ключ
+}
+
+variable "db_user_password" {
+  description = "Пароль для пользователя управляемой базы данных MySQL."
+  type        = string
+  sensitive   = true
+  // default     = "СуперСложныйПароль123!" // Раскомментируйте и придумайте надежный пароль
+}
+
+variable "db_resource_preset_id" {
+  description = "Класс хостов для Managed MySQL. Например, s3.micro, b3.medium."
+  type        = string
+  default     = "s3.micro" // Один из наименьших небурстируемых классов. Проверьте доступность с `yc managed-mysql resource-preset list`
+}
+
+variable "db_disk_size_gb" {
+  description = "Размер диска для Managed MySQL в ГБ."
+  type        = number
+  default     = 10
+}
+
+// Настройка провайдера Yandex Cloud
+// Предполагается, что токен, cloud_id и folder_id установлены через переменные окружения YC_TOKEN, YC_CLOUD_ID, YC_FOLDER_ID
+// или через значения по умолчанию в переменных выше.
+provider "yandex" {
+  token     = var.yc_token     // Можно закомментировать, если используется переменная окружения YC_TOKEN
+  cloud_id  = var.yc_cloud_id  // Можно закомментировать, если используется переменная окружения YC_CLOUD_ID
+  folder_id = var.yc_folder_id // Можно закомментировать, если используется переменная окружения YC_FOLDER_ID
+  zone      = var.yc_zone
+}
+
+// Получение актуального ID образа Ubuntu
+data "yandex_compute_image" "ubuntu_image" {
+  family = "ubuntu-2204-lts"
+}
+
+// Сетевая инфраструктура
+resource "yandex_vpc_network" "app_network" {
+  name = "app-network"
+}
+
+resource "yandex_vpc_subnet" "app_subnet" {
+  name           = "app-subnet-${var.yc_zone}"
+  zone           = var.yc_zone
+  network_id     = yandex_vpc_network.app_network.id
+  v4_cidr_blocks = ["10.1.0.0/24"] // Вы можете изменить этот диапазон, если он конфликтует с существующими сетями
+}
+
+// Группы безопасности
+resource "yandex_vpc_security_group" "vm_sg" {
+  name        = "vm-access-sg"
+  description = "Группа безопасности для ВМ, разрешает SSH и весь исходящий трафик"
+  network_id  = yandex_vpc_network.app_network.id
+
+  ingress {
+    description    = "Разрешить SSH"
+    protocol       = "TCP"
+    port           = 22
+    v4_cidr_blocks = ["0.0.0.0/0"] // ВНИМАНИЕ: Разрешает SSH с любого IP. Для повышения безопасности укажите ваш IP-адрес или диапазон.
+  }
+
+  egress {
+    description    = "Разрешить весь исходящий трафик"
+    protocol       = "ANY"
+    v4_cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+resource "yandex_vpc_security_group" "db_sg" {
+  name        = "db-access-sg"
+  description = "Группа безопасности для Managed MySQL, разрешает подключения с ВМ из app_subnet"
+  network_id  = yandex_vpc_network.app_network.id
+
+  ingress {
+    description    = "Разрешить MySQL с подсети ВМ"
+    protocol       = "TCP"
+    port           = 3306 // Стандартный порт MySQL
+    v4_cidr_blocks = yandex_vpc_subnet.app_subnet.v4_cidr_blocks
+  }
+
+  egress {
+    description    = "Разрешить весь исходящий трафик (необходимо для обновлений и т.д.)"
+    protocol       = "ANY"
+    v4_cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+// Виртуальная машина для CRM
+resource "yandex_compute_instance" "crm_vm" {
+  name        = "crm-vm"
+  platform_id = "standard-v3" // Современная стандартная платформа
+  zone        = var.yc_zone
+
+  resources {
+    cores  = 2
+    memory = 2 // ГБ
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = data.yandex_compute_image.ubuntu_image.id
+      size     = 10 // ГБ
+      type     = "network-ssd"
+    }
+  }
+
+  network_interface {
+    subnet_id          = yandex_vpc_subnet.app_subnet.id
+    nat                = true // Для доступа в интернет и из интернета по публичному IP
+    security_group_ids = [yandex_vpc_security_group.vm_sg.id]
+  }
+
+  metadata = {
+    user-data = <<-EOT
+      #cloud-config
+      users:
+        - name: yc-user # Имя пользователя по умолчанию для образов Yandex Cloud
+          groups: sudo
+          sudo: ['ALL=(ALL) NOPASSWD:ALL']
+          ssh_authorized_keys:
+            - ${var.ssh_public_key_content}
+    EOT
+    // Для некоторых старых образов может потребоваться ключ ssh-keys вместо user-data
+    // ssh-keys = "yc-user:${var.ssh_public_key_content}"
+  }
+
+  scheduling_policy {
+    preemptible = false // Непрерываемая ВМ
+  }
+}
+
+// Виртуальная машина для Интернет-магазина
+resource "yandex_compute_instance" "store_vm" {
+  name        = "store-vm"
+  platform_id = "standard-v3"
+  zone        = var.yc_zone
+
+  resources {
+    cores  = 2
+    memory = 2 // ГБ
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = data.yandex_compute_image.ubuntu_image.id
+      size     = 10 // ГБ
+      type     = "network-ssd"
+    }
+  }
+
+  network_interface {
+    subnet_id          = yandex_vpc_subnet.app_subnet.id
+    nat                = true
+    security_group_ids = [yandex_vpc_security_group.vm_sg.id]
+  }
+
+  metadata = {
+    user-data = <<-EOT
+      #cloud-config
+      users:
+        - name: yc-user
+          groups: sudo
+          sudo: ['ALL=(ALL) NOPASSWD:ALL']
+          ssh_authorized_keys:
+            - ${var.ssh_public_key_content}
+    EOT
+    // ssh-keys = "yc-user:${var.ssh_public_key_content}"
+  }
+
+  scheduling_policy {
+    preemptible = false
+  }
+}
+
+// Управляемая база данных MySQL
+resource "yandex_mdb_mysql_cluster" "main_db" {
+  name        = "main-mysql-db"
+  environment = "PRODUCTION" // Или PRESTABLE для тестовых сред
+  network_id  = yandex_vpc_network.app_network.id
+  version     = "8.0"       // Убедитесь, что версия поддерживается
+
+  resources {
+    resource_preset_id = var.db_resource_preset_id
+    disk_type_id       = "network-ssd"
+    disk_size          = var.db_disk_size_gb
+  }
+
+  maintenance_window {
+    type = "ANYTIME" // Или WEEKLY для указания конкретного дня и часа
+  }
+
+  host {
+    zone      = var.yc_zone
+    subnet_id = yandex_vpc_subnet.app_subnet.id
+    name      = "mysql-host-1" // Имя хоста в кластере
+  }
+
+  database {
+    name = "crm_database"
+  }
+
+  database {
+    name = "store_database"
+  }
+
+  user {
+    name     = "db_admin"
+    password = var.db_user_password
+    permission {
+      database_name = "crm_database"
+      roles         = ["ALL"] // Полные права на эту БД
+    }
+    permission {
+      database_name = "store_database"
+      roles         = ["ALL"] // Полные права на эту БД
+    }
+    // Для подключения ко всем базам данных:
+    // permission {
+    //   database_name = "%" // Wildcard для всех баз данных
+    //   roles         = ["ALL"]
+    // }
+  }
+
+  security_group_ids = [yandex_vpc_security_group.db_sg.id]
+
+  deletion_protection = false // Установите true для защиты от случайного удаления в производственной среде
+}
+
+// Выходные данные (Outputs)
+output "crm_vm_public_ip" {
+  description = "Публичный IP-адрес ВМ для CRM"
+  value       = yandex_compute_instance.crm_vm.network_interface.0.nat_ip_address
+}
+
+output "store_vm_public_ip" {
+  description = "Публичный IP-адрес ВМ для Интернет-магазина"
+  value       = yandex_compute_instance.store_vm.network_interface.0.nat_ip_address
+}
+
+output "mysql_cluster_fqdn" {
+  description = "FQDN (адрес подключения) для кластера Managed MySQL"
+  value       = yandex_mdb_mysql_cluster.main_db.host.0.fqdn // Может потребоваться некоторое время для появления FQDN после создания
+}
+
+output "mysql_database_names" {
+  description = "Имена созданных баз данных в Managed MySQL"
+  value       = [for db in yandex_mdb_mysql_cluster.main_db.database : db.name]
+}
+
+output "mysql_user_name" {
+  description = "Имя пользователя для Managed MySQL"
+  value       = yandex_mdb_mysql_cluster.main_db.user.0.name
+}
+
+output "mysql_user_password_comment" {
+  description = "Пароль для пользователя Managed MySQL указан в переменной db_user_password."
+  value       = "См. значение переменной 'db_user_password' или ваш файл terraform.tfvars."
+}

@@ -1,0 +1,152 @@
+terraform {
+  required_providers {
+    yandex = {
+      source = "yandex-cloud/yandex"
+    }
+  }
+  required_version = ">= 0.13"
+}
+
+provider "yandex" {
+  zone = "<зона_доступности_по_умолчанию>"
+}
+
+# variables.tf (встроенные переменные)
+variable "yc_zone" {
+  description = "Yandex Cloud zone"
+  type        = string
+  default     = "ru-central1-a"
+}
+
+variable "yc_image_id" {
+  description = "Ubuntu 22.04 LTS image ID"
+  type        = string
+  default     = "fd827b91d99psvq5fjit" # Ubuntu 22.04 LTS (проверьте актуальность!)
+}
+
+variable "db_password" {
+  description = "MySQL admin password"
+  type        = string
+  sensitive   = true
+  default     = "secure_password_123" # ЗАМЕНИТЕ на свой пароль!
+}
+
+# Ресурсы
+resource "yandex_vpc_network" "main" {
+  name = "main-network"
+}
+
+resource "yandex_vpc_subnet" "main" {
+  name           = "main-subnet"
+  zone           = var.yc_zone
+  network_id     = yandex_vpc_network.main.id
+  v4_cidr_blocks = ["192.168.10.0/24"]
+}
+
+# CRM VM
+resource "yandex_compute_instance" "crm" {
+  name        = "crm-vm"
+  platform_id = "standard-v3"
+  zone        = var.yc_zone
+
+  resources {
+    cores  = 2
+    memory = 4
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = var.yc_image_id
+      size     = 20
+    }
+  }
+
+  network_interface {
+    subnet_id = yandex_vpc_subnet.main.id
+    nat       = true
+  }
+
+  metadata = {
+    ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}" # Убедитесь что файл существует
+  }
+}
+
+# E-commerce VM
+resource "yandex_compute_instance" "ecommerce" {
+  name        = "ecommerce-vm"
+  platform_id = "standard-v3"
+  zone        = var.yc_zone
+
+  resources {
+    cores  = 2
+    memory = 4
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = var.yc_image_id
+      size     = 20
+    }
+  }
+
+  network_interface {
+    subnet_id = yandex_vpc_subnet.main.id
+    nat       = true
+  }
+
+  metadata = {
+    ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}" # Убедитесь что файл существует
+  }
+}
+
+# Managed MySQL
+resource "yandex_mdb_mysql_cluster" "mysql" {
+  name        = "mysql-cluster"
+  environment = "PRODUCTION"
+  network_id  = yandex_vpc_network.main.id
+
+  resources {
+    resource_preset_id = "s2.micro" # 2 vCPU, 8GB RAM
+    disk_type_id      = "network-ssd"
+    disk_size         = 10
+  }
+
+  database {
+    name = "crm_db"
+  }
+
+  database {
+    name = "shop_db"
+  }
+
+  user {
+    name     = "admin"
+    password = var.db_password
+    permission {
+      database_name = "crm_db"
+      roles        = ["ALL"]
+    }
+    permission {
+      database_name = "shop_db"
+      roles        = ["ALL"]
+    }
+  }
+
+  host {
+    zone      = var.yc_zone
+    subnet_id = yandex_vpc_subnet.main.id
+  }
+}
+
+# outputs.tf (встроенные выводы)
+output "crm_vm_public_ip" {
+  value = yandex_compute_instance.crm.network_interface.0.nat_ip_address
+}
+
+output "ecommerce_vm_public_ip" {
+  value = yandex_compute_instance.ecommerce.network_interface.0.nat_ip_address
+}
+
+output "mysql_host" {
+  value = yandex_mdb_mysql_cluster.mysql.host[0].fqdn
+}

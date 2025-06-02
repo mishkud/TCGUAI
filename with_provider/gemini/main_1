@@ -1,0 +1,303 @@
+terraform {
+  required_providers {
+    yandex = {
+      source  = "yandex-cloud/yandex"
+      version = "~> 0.90" # Рекомендуется использовать актуальную версию
+    }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.5"
+    }
+  }
+}
+
+# ------------------------------------------------------------------------------
+# ПРОВАЙДЕР YANDEX CLOUD
+# ------------------------------------------------------------------------------
+# Замените значения token, cloud_id и folder_id на ваши,
+# или настройте переменные окружения YC_TOKEN, YC_CLOUD_ID, YC_FOLDER_ID
+provider "yandex" {
+  # token     = "ВАШ_OAUTH_ТОКЕН_ИЛИ_API_КЛЮЧ" # Рекомендуется использовать переменные окружения
+  # cloud_id  = "ВАШ_CLOUD_ID"                 # Рекомендуется использовать переменные окружения
+  # folder_id = var.yc_folder_id               # Указывается через переменную ниже
+  zone      = "ru-central1-a"                # Выберите желаемую зону доступности
+}
+
+# ------------------------------------------------------------------------------
+# ВХОДНЫЕ ПЕРЕМЕННЫЕ
+# ------------------------------------------------------------------------------
+variable "yc_folder_id" {
+  description = "Yandex Cloud Folder ID."
+  type        = string
+  # Замените на ваш Folder ID, если не используете переменные окружения для провайдера
+  # default     = "b1gxxxxxxxxxxxxxxxxxxx"
+}
+
+variable "ssh_key_public" {
+  description = "Public SSH key for accessing the VMs."
+  type        = string
+  sensitive   = true
+  # ЗАМЕНИТЕ НА ВАШ ПУБЛИЧНЫЙ SSH КЛЮЧ:
+  # default     = "ssh-rsa AAAA..."
+}
+
+variable "vm_image_id" {
+  description = "Image ID for VMs. Default is Ubuntu 22.04 LTS."
+  type        = string
+  default     = "fd8vmcue70k3fca6jhis" # ID для Ubuntu 22.04 LTS на май 2025. Проверьте актуальность.
+}
+
+variable "vm_user" {
+  description = "Default user for connecting to VMs."
+  type        = string
+  default     = "ubuntu" # Стандартный пользователь для образов Ubuntu в Yandex Cloud
+}
+
+# ------------------------------------------------------------------------------
+# СЕТЬ
+# ------------------------------------------------------------------------------
+resource "yandex_vpc_network" "app_network" {
+  name = "app-network"
+}
+
+resource "yandex_vpc_subnet" "app_subnet" {
+  name           = "app-subnet"
+  zone           = "ru-central1-a" # Должна совпадать с зоной ВМ и БД
+  network_id     = yandex_vpc_network.app_network.id
+  v4_cidr_blocks = ["10.1.0.0/24"]
+}
+
+# ------------------------------------------------------------------------------
+# ГРУППЫ БЕЗОПАСНОСТИ
+# ------------------------------------------------------------------------------
+resource "yandex_vpc_security_group" "vm_sg" {
+  name        = "vm-access-sg"
+  description = "Allows SSH and basic web traffic"
+  network_id  = yandex_vpc_network.app_network.id
+
+  ingress {
+    protocol       = "TCP"
+    description    = "Allow SSH from any"
+    v4_cidr_blocks = ["0.0.0.0/0"]
+    port           = 22
+  }
+
+  ingress {
+    protocol       = "TCP"
+    description    = "Allow HTTP from any"
+    v4_cidr_blocks = ["0.0.0.0/0"]
+    port           = 80
+  }
+
+  ingress {
+    protocol       = "TCP"
+    description    = "Allow HTTPS from any"
+    v4_cidr_blocks = ["0.0.0.0/0"]
+    port           = 443
+  }
+
+  egress {
+    protocol       = "ANY"
+    description    = "Allow all outgoing traffic"
+    v4_cidr_blocks = ["0.0.0.0/0"]
+    from_port      = 0
+    to_port        = 65535
+  }
+}
+
+resource "yandex_vpc_security_group" "mysql_sg" {
+  name        = "mysql-access-sg"
+  description = "Allows MySQL access from VMs within the same network"
+  network_id  = yandex_vpc_network.app_network.id
+
+  # Разрешаем доступ к MySQL только из подсети, где находятся ВМ
+  ingress {
+    protocol              = "TCP"
+    description           = "Allow MySQL from app subnet"
+    predefined_target     = "self_security_group" # Позволяет трафик от ресурсов в этой же группе (на случай если БД и ВМ в одной SG)
+    port                  = 3306
+  }
+
+  ingress {
+    protocol          = "TCP"
+    description       = "Allow MySQL from VMs security group"
+    security_group_id = yandex_vpc_security_group.vm_sg.id # Разрешает трафик от ВМ с группой vm_sg
+    port              = 3306
+  }
+
+   # Можно также явно указать CIDR подсети для большей гранулярности, если ВМ и БД в разных SG
+  # ingress {
+  #   protocol       = "TCP"
+  #   description    = "Allow MySQL from app subnet"
+  #   v4_cidr_blocks = yandex_vpc_subnet.app_subnet.v4_cidr_blocks
+  #   port           = 3306
+  # }
+
+  egress {
+    protocol       = "ANY"
+    description    = "Allow all outgoing traffic"
+    v4_cidr_blocks = ["0.0.0.0/0"]
+    from_port      = 0
+    to_port        = 65535
+  }
+}
+
+# ------------------------------------------------------------------------------
+# ВИРТУАЛЬНАЯ МАШИНА ДЛЯ CRM
+# ------------------------------------------------------------------------------
+resource "yandex_compute_instance" "crm_vm" {
+  name        = "crm-vm"
+  platform_id = "standard-v3" # Стандартная платформа
+  zone        = yandex_vpc_subnet.app_subnet.zone
+  folder_id   = var.yc_folder_id
+
+  resources {
+    cores  = 2
+    memory = 2
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = var.vm_image_id
+      size     = 10 # Размер диска в ГБ
+    }
+  }
+
+  network_interface {
+    subnet_id          = yandex_vpc_subnet.app_subnet.id
+    nat                = true # Для доступа в интернет и из интернета
+    security_group_ids = [yandex_vpc_security_group.vm_sg.id]
+  }
+
+  metadata = {
+    user-data = "#cloud-config\nusers:\n  - name: ${var.vm_user}\n    groups: sudo\n    shell: /bin/bash\n    sudo: ['ALL=(ALL) NOPASSWD:ALL']\n    ssh-authorized-keys:\n      - ${var.ssh_key_public}"
+  }
+
+  scheduling_policy {
+    preemptible = false # false = стандартная ВМ, true = прерываемая
+  }
+}
+
+# ------------------------------------------------------------------------------
+# ВИРТУАЛЬНАЯ МАШИНА ДЛЯ ИНТЕРНЕТ-МАГАЗИНА
+# ------------------------------------------------------------------------------
+resource "yandex_compute_instance" "shop_vm" {
+  name        = "shop-vm"
+  platform_id = "standard-v3"
+  zone        = yandex_vpc_subnet.app_subnet.zone
+  folder_id   = var.yc_folder_id
+
+  resources {
+    cores  = 2
+    memory = 2
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = var.vm_image_id
+      size     = 10
+    }
+  }
+
+  network_interface {
+    subnet_id          = yandex_vpc_subnet.app_subnet.id
+    nat                = true
+    security_group_ids = [yandex_vpc_security_group.vm_sg.id]
+  }
+
+  metadata = {
+    user-data = "#cloud-config\nusers:\n  - name: ${var.vm_user}\n    groups: sudo\n    shell: /bin/bash\n    sudo: ['ALL=(ALL) NOPASSWD:ALL']\n    ssh-authorized-keys:\n      - ${var.ssh_key_public}"
+  }
+
+  scheduling_policy {
+    preemptible = false
+  }
+}
+
+# ------------------------------------------------------------------------------
+# MANAGED БАЗА ДАННЫХ MYSQL
+# ------------------------------------------------------------------------------
+resource "random_password" "mysql_password" {
+  length           = 16
+  special          = true
+  override_special = "!#%&*()-_=+[]{}<>:?"
+}
+
+resource "yandex_mdb_mysql_cluster" "mysql_cluster" {
+  name                = "app-mysql-cluster"
+  environment         = "PRODUCTION" # Или PRESTABLE
+  network_id          = yandex_vpc_network.app_network.id
+  folder_id           = var.yc_folder_id
+  version             = "8.0"       # Укажите желаемую версию MySQL
+  security_group_ids  = [yandex_vpc_security_group.mysql_sg.id]
+
+  resources {
+    resource_preset_id = "s3.medium" # Минимальный подходящий класс хоста, выберите согласно нагрузке
+                                     # s3.medium: 2 vCPU, 8 GB RAM
+                                     # s2.micro: 2 vCPU, 4 GB RAM (может быть недостаточно)
+                                     # s2.nano: 2 vCPU, 2 GB RAM (минимальный, не рекомендуется для продакшена)
+    disk_type_id       = "network-ssd"
+    disk_size          = 10 # Минимальный размер диска в ГБ
+  }
+
+  host {
+    zone      = yandex_vpc_subnet.app_subnet.zone
+    subnet_id = yandex_vpc_subnet.app_subnet.id
+    name      = "mysql-main-host" # Имя хоста внутри кластера
+  }
+
+  maintenance_window {
+    type = "ANYTIME" # или WEEKLY
+  }
+
+  deletion_protection = false # Установите true для защиты от случайного удаления в продакшене
+}
+
+resource "yandex_mdb_mysql_database" "app_db" {
+  cluster_id = yandex_mdb_mysql_cluster.mysql_cluster.id
+  name       = "appdb"
+}
+
+resource "yandex_mdb_mysql_user" "app_user" {
+  cluster_id = yandex_mdb_mysql_cluster.mysql_cluster.id
+  name       = "appuser"
+  password   = random_password.mysql_password.result
+  permission {
+    database_name = yandex_mdb_mysql_database.app_db.name
+    roles         = ["ALL"] # Или более гранулярные права, например ["SELECT", "INSERT", "UPDATE", "DELETE"]
+  }
+}
+
+# ------------------------------------------------------------------------------
+# ВЫХОДНЫЕ ЗНАЧЕНИЯ
+# ------------------------------------------------------------------------------
+output "crm_vm_public_ip" {
+  description = "Public IP address of the CRM VM."
+  value       = yandex_compute_instance.crm_vm.network_interface.0.nat_ip_address
+}
+
+output "shop_vm_public_ip" {
+  description = "Public IP address of the Shop VM."
+  value       = yandex_compute_instance.shop_vm.network_interface.0.nat_ip_address
+}
+
+output "mysql_cluster_fqdn" {
+  description = "FQDN of the MySQL cluster (use this to connect from VMs)."
+  value       = yandex_mdb_mysql_cluster.mysql_cluster.host[0].fqdn
+}
+
+output "mysql_database_name" {
+  description = "Name of the MySQL database."
+  value       = yandex_mdb_mysql_database.app_db.name
+}
+
+output "mysql_user_name" {
+  description = "Username for the MySQL database."
+  value       = yandex_mdb_mysql_user.app_user.name
+}
+
+output "mysql_user_password" {
+  description = "Password for the MySQL database user. Store it securely!"
+  value       = random_password.mysql_password.result
+  sensitive   = true
+}

@@ -1,0 +1,112 @@
+# main.tf
+
+provider "yandex" {
+  token = var.yc_token
+  cloud_id = var.cloud_id
+  folder_id = var.folder_id
+}
+
+resource "yandex_vpc_network" "network" {
+  name = "my-network"
+}
+
+resource "yandex_vpc_subnet" "subnet" {
+  zone           = "ru-central1-a"
+  network_id     = yandex_vpc_network.network.id
+  v4_cidr_blocks = ["10.130.0.0/24"]
+  name           = "crm-subnet"
+}
+
+resource "yandex_compute_instance" "crm_vm" {
+  name        = "crm-instance"
+  platform_id = "standard-v3"
+  resources {
+    cores  = 2
+    memory = 8
+  }
+  boot_disk {
+    initialize_params {
+      image_id = data.yandex_compute_image.centos7.image_id
+    }
+  }
+  network_interface {
+    subnet_id   = yandex_vpc_subnet.subnet.id
+    nat         = true
+  }
+  metadata = {
+    ssh-keys = "root:${var.ssh_public_key}"
+  }
+}
+
+resource "yandex_compute_instance" "shop_vm" {
+  name        = "shop-instance"
+  platform_id = "standard-v3"
+  resources {
+    cores  = 2
+    memory = 8
+  }
+  boot_disk {
+    initialize_params {
+      image_id = data.yandex_compute_image.centos7.image_id
+    }
+  }
+  network_interface {
+    subnet_id   = yandex_vpc_subnet.subnet.id
+    nat         = true
+  }
+  metadata = {
+    ssh-keys = "root:${var.ssh_public_key}"
+  }
+}
+
+data "yandex_mdb_mysql_cluster_predefined_version" "mysql_8_0" {}
+
+resource "yandex_mdb_mysql_cluster" "mdb-cluster" {
+  name                 = "mydbcluster"
+  environment          = "PRODUCTION"
+  version              = data.yandex_mdb_mysql_cluster_predefined_version.mysql_8_0.version
+  mysql_config {
+    version                = data.yandex_mdb_mysql_cluster_predefined_version.mysql_8_0.version
+    max_connections        = 1000
+    wait_timeout           = 300
+    interactive_timeout    = 300
+    connect_timeout        = 10
+  }
+  user {
+    name       = "admin"
+    password   = var.db_password
+    permission {
+      database_name = "*"
+      roles         = ["ALL"]
+    }
+  }
+  database {
+    name = "crm_db"
+  }
+  database {
+    name = "shop_db"
+  }
+  host {
+    zone            = "ru-central1-a"
+    subnet_id       = yandex_vpc_subnet.subnet.id
+    assign_public_ip = false
+  }
+  allocated_resources {
+    resource_preset_id = "s2.micro"
+    disk_type_id       = "network-hdd"
+    disk_size          = 10
+  }
+  network_id = yandex_vpc_network.network.id
+}
+
+output "crm_vm_external_ip" {
+  value = yandex_compute_instance.crm_vm.network_interface.0.nat_ip_address
+}
+
+output "shop_vm_external_ip" {
+  value = yandex_compute_instance.shop_vm.network_interface.0.nat_ip_address
+}
+
+data "yandex_compute_image" "centos7" {
+  family = "centos-7"
+}

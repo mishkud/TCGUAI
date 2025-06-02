@@ -1,0 +1,159 @@
+# Провайдер Yandex.Cloud
+provider "yandex" {}
+
+# Создание сети и подсеть
+resource "yandex_vpc_network" "default-network" {
+  name           = "my-infra-network"
+  folder_id      = var.yc_folder_id
+  labels         = { purpose = "infrastructure-demo" }
+}
+
+resource "yandex_vpc_subnet" "subnet" {
+  zone           = var.yc_zone
+  network_id     = yandex_vpc_network.default-network.id
+  v4_cidr_blocks = ["10.130.0.0/24"]
+  name           = "demo-subnet"
+}
+
+# Группы безопасности для баз данных и серверов
+resource "yandex_vpc_security_group" "db-sg" {
+  name       = "db-security-group"
+  folder_id  = var.yc_folder_id
+
+  ingress {
+    from_port   = 3306
+    to_port     = 3306
+    protocol    = "TCP"
+    description = "Allow access for MySQL"
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "ALL"
+    description = "All outbound traffic allowed"
+  }
+}
+
+resource "yandex_vpc_security_group" "vm-sg" {
+  name       = "vm-security-group"
+  folder_id  = var.yc_folder_id
+
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "TCP"
+    description = "HTTP access"
+  }
+
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "TCP"
+    description = "SSH access"
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "ALL"
+    description = "All outbound traffic allowed"
+  }
+}
+
+# Создаем управляемый сервис MySQL
+resource "yandex_mdb_mysql_cluster" "managed-mysql-cluster" {
+  name                 = "mysql-cluster"
+  environment          = "PRODUCTION"
+  network_id           = yandex_vpc_network.default-network.id
+  version              = "8.0"
+  deletion_protection  = false
+
+  host {
+    subnet_id            = yandex_vpc_subnet.subnet.id
+    assign_public_ip     = false
+    security_group_ids   = [yandex_vpc_security_group.db-sg.id]
+  }
+
+  resources {
+    resource_preset_id  = "s2.micro"
+    disk_type_id        = "network-hdd"
+    disk_size           = 10 # GB
+  }
+
+  user {
+    name                = var.mysql_user
+    password            = var.mysql_password
+  }
+
+  database {
+    name                = var.mysql_db_name
+  }
+}
+
+# Виртуальные машины для CRM и магазина
+resource "yandex_compute_instance" "crm-vm" {
+  name                  = var.crm_vm_name
+  platform_id           = "standard-v3"
+  zone                  = var.yc_zone
+  folder_id             = var.yc_folder_id
+  boot_disk {
+    initialize_params {
+      image_id = "fd84hmbutvgh7u86dhhq" # Ubuntu Server 22.04 LTS x64 (ID образа меняется)
+    }
+  }
+
+  resources {
+    cores  = 2
+    memory = 4
+  }
+
+  network_interface {
+    subnet_id         = yandex_vpc_subnet.subnet.id
+    nat               = true
+    security_group_ids = [yandex_vpc_security_group.vm-sg.id]
+  }
+
+  metadata = {
+    ssh-keys = file("./public_key.pub") # Загрузите ваш SSH ключ сюда!
+  }
+}
+
+resource "yandex_compute_instance" "shop-vm" {
+  name                  = var.shop_vm_name
+  platform_id           = "standard-v3"
+  zone                  = var.yc_zone
+  folder_id             = var.yc_folder_id
+  boot_disk {
+    initialize_params {
+      image_id = "fd84hmbutvgh7u86dhhq" # Ubuntu Server 22.04 LTS x64 (ID образа меняется)
+    }
+  }
+
+  resources {
+    cores  = 2
+    memory = 4
+  }
+
+  network_interface {
+    subnet_id         = yandex_vpc_subnet.subnet.id
+    nat               = true
+    security_group_ids = [yandex_vpc_security_group.vm-sg.id]
+  }
+
+  metadata = {
+    ssh-keys = file("./public_key.pub") # Загрузите ваш SSH ключ сюда!
+  }
+}
+
+output "crm_server_external_ip" {
+  value = yandex_compute_instance.crm-vm.network_interface.0.nat_ip_address
+}
+
+output "shop_server_external_ip" {
+  value = yandex_compute_instance.shop-vm.network_interface.0.nat_ip_address
+}
+
+output "mysql_hostname" {
+  value = element(yandex_mdb_mysql_cluster.managed-mysql-cluster.hosts.*.fqdn, 0)
+}

@@ -1,0 +1,123 @@
+terraform {
+  required_providers {
+    yandex = {
+      source = "yandex-cloud/yandex"
+    }
+  }
+  required_version = ">= 0.13"
+}
+
+provider "yandex" {
+  zone = "<зона_доступности_по_умолчанию>"
+}
+
+# Переменные, которые пользователь должен задать
+variable "zone" {
+  description = "Зона доступности (например, ru-central1-a)"
+  type        = string
+  default     = "ru-central1-a"
+}
+
+variable "subnet_id" {
+  description = "ID подсети, в которой будут размещены ресурсы"
+  type        = string
+}
+
+# Виртуальная машина для CRM
+resource "yandex_compute_instance" "crm_vm" {
+  name        = "crm-vm"
+  platform_id = "standard-v3"
+  zone        = var.zone
+
+  resources {
+    cores  = 2
+    memory = 4
+    core_fraction = 20
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = "fd8kdq0ig5k6q5b6jgf4" # Ubuntu 22.04 LTS
+      size     = 20
+    }
+  }
+
+  network_interface {
+    subnet_id = var.subnet_id
+    nat       = true # Внешний IP для доступа
+  }
+
+  metadata = {
+    ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}" # Укажите путь к вашему публичному SSH-ключу
+  }
+}
+
+# Виртуальная машина для интернет-магазина
+resource "yandex_compute_instance" "shop_vm" {
+  name        = "shop-vm"
+  platform_id = "standard-v3"
+  zone        = var.zone
+
+  resources {
+    cores  = 2
+    memory = 4
+    core_fraction = 20
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = "fd8kdq0ig5k6q5b6jgf4" # Ubuntu 22.04 LTS
+      size     = 20
+    }
+  }
+
+  network_interface {
+    subnet_id = var.subnet_id
+    nat       = true # Внешний IP для доступа
+  }
+
+  metadata = {
+    ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}" # Укажите путь к вашему публичному SSH-ключу
+  }
+}
+
+# Managed MySQL база данных
+resource "yandex_mdb_mysql_cluster" "mysql_cluster" {
+  name        = "mysql-cluster"
+  environment = "PRODUCTION"
+  network_id  = data.yandex_vpc_network.default.id
+  version     = "8.0"
+
+  resources {
+    resource_preset_id = "s2.micro" # 2 vCPU, 8 GB RAM
+    disk_size          = 20
+    disk_type_id       = "network-ssd"
+  }
+
+  mysql_config = {
+    sql_mode = "ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION"
+  }
+
+  host {
+    zone      = var.zone
+    subnet_id = var.subnet_id
+  }
+}
+
+# Получение ID дефолтной сети
+data "yandex_vpc_network" "default" {
+  name = "default"
+}
+
+# Вывод IP-адресов для удобства
+output "crm_vm_external_ip" {
+  value = yandex_compute_instance.crm_vm.network_interface.0.nat_ip_address
+}
+
+output "shop_vm_external_ip" {
+  value = yandex_compute_instance.shop_vm.network_interface.0.nat_ip_address
+}
+
+output "mysql_cluster_host" {
+  value = yandex_mdb_mysql_cluster.mysql_cluster.host.0.fqdn
+}

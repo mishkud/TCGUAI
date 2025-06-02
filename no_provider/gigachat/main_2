@@ -1,0 +1,103 @@
+terraform {
+  required_providers {
+    yandex = {
+      source = "yandex-cloud/yandex"
+    }
+  }
+  required_version = ">= 0.13"
+}
+
+provider "yandex" {
+  zone = "<зона_доступности_по_умолчанию>"
+}
+# Создаем сеть и подсеть для ресурсов
+resource "yandex_vpc_network" "network" {
+  name = var.network_name
+}
+
+resource "yandex_vpc_subnet" "subnet" {
+  zone           = var.zone
+  network_id     = yandex_vpc_network.network.id
+  v4_cidr_blocks = ["10.130.0.0/24"]
+  name           = "${var.network_name}-subnet-${var.zone}"
+}
+
+# Виртуальные машины
+resource "yandex_compute_instance" "crm_vm" {
+  name        = "crm-server"
+  platform_id = "standard-v3"
+  resources {
+    cores  = 2
+    memory = 8
+  }
+  boot_disk {
+    initialize_params {
+      image_id = data.yandex_compute_image.centos_7.image_id
+    }
+  }
+  network_interface {
+    subnet_id   = yandex_vpc_subnet.subnet.id
+    nat         = true
+  }
+  metadata = {
+    ssh-keys = "root:${file(var.ssh_public_key_path)}"
+  }
+}
+
+resource "yandex_compute_instance" "shop_vm" {
+  name        = "shop-server"
+  platform_id = "standard-v3"
+  resources {
+    cores  = 2
+    memory = 8
+  }
+  boot_disk {
+    initialize_params {
+      image_id = data.yandex_compute_image.centos_7.image_id
+    }
+  }
+  network_interface {
+    subnet_id   = yandex_vpc_subnet.subnet.id
+    nat         = true
+  }
+  metadata = {
+    ssh-keys = "root:${file(var.ssh_public_key_path)}"
+  }
+}
+
+# Управляемый экземпляр MySQL
+resource "yandex_mdb_mysql_cluster" "mysql_db" {
+  name                = "managed-mysql-cluster"
+  environment         = "PRODUCTION"
+  version              = "8.0"
+  mysql_config_8_0 {
+    sql_mode = [
+      "STRICT_TRANS_TABLES",
+      "NO_ENGINE_SUBSTITUTION"
+    ]
+  }
+  allocated_storage   = 10 # Гб
+  host {
+    name       = "mdb-mysql-host"
+    subnet_ids = [yandex_vpc_subnet.subnet.id]
+  }
+  resources {
+    resource_preset_id = "s2.micro"
+    disk_type_id       = "network-hdd"
+    disk_size          = 10 # Гб
+  }
+  user {
+    name     = "app_user"
+    password = var.mysql_password
+  }
+  database {
+    name = "crm_database"
+  }
+  database {
+    name = "shop_database"
+  }
+}
+
+data "yandex_compute_image" "centos_7" {
+  family = "centos-7"
+}

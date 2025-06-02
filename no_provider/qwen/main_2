@@ -1,0 +1,140 @@
+terraform {
+  required_providers {
+    yandex = {
+      source = "yandex-cloud/yandex"
+    }
+  }
+  required_version = ">= 0.13"
+}
+
+provider "yandex" {
+  zone = "<зона_доступности_по_умолчанию>"
+}
+
+variable "yc_token" {
+  description = "OAuth-токен или IAM-токен Yandex Cloud"
+  type        = string
+  sensitive   = true
+}
+
+variable "folder_id" {
+  description = "ID каталога в Yandex Cloud"
+  type        = string
+}
+
+provider "yandex" {
+  token     = var.yc_token
+  folder_id = var.folder_id
+  zone      = "ru-central1-a"
+}
+
+# Сеть
+resource "yandex_vpc_network" "default" {
+  name = "crm-shop-network"
+}
+
+# Подсеть
+resource "yandex_vpc_subnet" "default" {
+  name           = "crm-shop-subnet"
+  zone           = "ru-central1-a"
+  network_id     = yandex_vpc_network.default.id
+  v4_cidr_blocks = ["192.168.10.0/24"]
+}
+
+# SSH-ключ по умолчанию
+locals {
+  ssh_key_path = "~/.ssh/id_rsa.pub"
+}
+
+# База данных MySQL
+resource "yandex_mdb_mysql_cluster" "default" {
+  name        = "crm-shop-db"
+  environment = "PRESTABLE"
+  network_id  = yandex_vpc_network.default.id
+
+  host {
+    zone             = "ru-central1-a"
+    subnet_id        = yandex_vpc_subnet.default.id
+    assign_public_ip = false
+  }
+
+  mysql_config {
+    max_connections = 100
+  }
+
+  user {
+    name     = "admin"
+    password = "strongpassword"
+    permission {
+      database_name = "main_db"
+      roles         = ["ALL"]
+    }
+  }
+
+  database {
+    name = "main_db"
+  }
+
+  access {
+    web_sql = true
+  }
+}
+
+# Образ Ubuntu 22.04 LTS
+data "yandex_compute_image" "ubuntu" {
+  family = "ubuntu-2204-lts"
+}
+
+# ВМ для CRM
+resource "yandex_compute_instance" "crm" {
+  name = "crm-server"
+
+  resources {
+    cores  = 2
+    memory = 2
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = data.yandex_compute_image.ubuntu.id
+      size     = 10
+    }
+  }
+
+  network_interface {
+    subnet_id  = yandex_vpc_subnet.default.id
+    nat        = true
+    ip_address = "192.168.10.10"
+  }
+
+  metadata = {
+    ssh-keys = "ubuntu:${file(local.ssh_key_path)}"
+  }
+}
+
+# ВМ для интернет-магазина
+resource "yandex_compute_instance" "shop" {
+  name = "shop-server"
+
+  resources {
+    cores  = 2
+    memory = 2
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = data.yandex_compute_image.ubuntu.id
+      size     = 10
+    }
+  }
+
+  network_interface {
+    subnet_id  = yandex_vpc_subnet.default.id
+    nat        = true
+    ip_address = "192.168.10.20"
+  }
+
+  metadata = {
+    ssh-keys = "ubuntu:${file(local.ssh_key_path)}"
+  }
+}

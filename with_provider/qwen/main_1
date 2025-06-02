@@ -1,0 +1,111 @@
+provider "yandex" {
+  token     = var.yc_token
+  cloud_id  = var.yc_cloud_id
+  folder_id = var.yc_folder_id
+  zone      = var.yc_zone
+}
+
+# ----------------------------
+# Облачная сеть и подсеть
+# ----------------------------
+
+resource "yandex_vpc_network" "default" {
+  name = "crm-shop-network"
+}
+
+resource "yandex_vpc_subnet" "default" {
+  name           = "crm-shop-subnet"
+  zone           = var.yc_zone
+  network_id     = yandex_vpc_network.default.id
+  v4_cidr_blocks = ["10.10.0.0/24"]
+}
+
+# ----------------------------
+# Managed MySQL
+# ----------------------------
+
+resource "yandex_mdb_mysql_cluster" "default" {
+  name        = "crm-shop-db"
+  environment = "PRODUCTION"
+  network_id  = yandex_vpc_network.default.id
+
+  host {
+    zone      = var.yc_zone
+    subnet_id = yandex_vpc_subnet.default.id
+  }
+
+  mysql_config = {
+    "max_connections" = 100
+  }
+
+  user {
+    name     = var.db_user
+    password = var.db_password
+  }
+
+  database {
+    name = var.db_name
+  }
+}
+
+# ----------------------------
+# Виртуальная машина для CRM
+# ----------------------------
+
+resource "yandex_compute_instance" "crm_vm" {
+  name = "crm-server"
+  zone = var.yc_zone
+
+  resources {
+    cores  = 2
+    memory = 2
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = "fd89gv5m78v6ejuifiks" # Ubuntu 22.04 LTS
+      type     = "network-hdd"
+      size     = 10
+    }
+  }
+
+  network_interface {
+    subnet_id = yandex_vpc_subnet.default.id
+    nat       = true
+  }
+
+  metadata = {
+    ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"
+  }
+}
+
+# ----------------------------
+# Виртуальная машина для интернет-магазина
+# ----------------------------
+
+resource "yandex_compute_instance" "shop_vm" {
+  name = "shop-server"
+  zone = var.yc_zone
+
+  resources {
+    cores  = 2
+    memory = 2
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = "fd89gv5m78v6ejuifiks" # Ubuntu 22.04 LTS
+      type     = "network-hdd"
+      size     = 10
+    }
+  }
+
+  network_interface {
+    subnet_id = yandex_vpc_subnet.default.id
+    nat       = true
+  }
+
+  metadata = {
+    ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"
+  }
+}

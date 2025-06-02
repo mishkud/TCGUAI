@@ -1,0 +1,142 @@
+terraform {
+  required_providers {
+    yandex = {
+      source = "yandex-cloud/yandex"
+    }
+  }
+  required_version = ">= 0.13"
+}
+
+provider "yandex" {
+  zone = "<зона_доступности_по_умолчанию>"
+}
+
+variable "zone" {
+  description = "Availability zone for resources"
+  type        = string
+  default     = "ru-central1-a"
+}
+
+variable "vpc_name" {
+  description = "Name of the VPC network"
+  type        = string
+  default     = "default-network"
+}
+
+variable "subnet_name" {
+  description = "Name of the subnet"
+  type        = string
+  default     = "default-subnet"
+}
+
+variable "subnet_cidr" {
+  description = "CIDR block for the subnet"
+  type        = string
+  default     = "10.0.0.0/24"
+}
+
+variable "db_password" {
+  description = "Password for the MySQL user"
+  type        = string
+  sensitive   = true
+}
+
+resource "yandex_vpc_network" "default" {
+  name = var.vpc_name
+}
+
+resource "yandex_vpc_subnet" "default" {
+  name           = var.subnet_name
+  zone           = var.zone
+  network_id     = yandex_vpc_network.default.id
+  v4_cidr_blocks = [var.subnet_cidr]
+}
+
+resource "yandex_compute_instance" "crm" {
+  name        = "crm-instance"
+  platform_id = "standard-v1"
+  zone        = var.zone
+
+  resources {
+    cores  = 2
+    memory = 2
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = "fd827b91d99psvq5fjit" # Ubuntu 22.04 LTS
+    }
+  }
+
+  network_interface {
+    subnet_id = yandex_vpc_subnet.default.id
+    nat       = true
+  }
+
+  metadata = {
+    ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"
+  }
+}
+
+resource "yandex_compute_instance" "shop" {
+  name        = "shop-instance"
+  platform_id = "standard-v1"
+  zone        = var.zone
+
+  resources {
+    cores  = 2
+    memory = 2
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = "fd827b91d99psvq5fjit" # Ubuntu 22.04 LTS
+    }
+  }
+
+  network_interface {
+    subnet_id = yandex_vpc_subnet.default.id
+    nat       = true
+  }
+
+  metadata = {
+    ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"
+  }
+}
+
+resource "yandex_mdb_mysql_cluster" "default" {
+  name        = "mysql-cluster"
+  environment = "PRESTABLE"
+  network_id  = yandex_vpc_network.default.id
+
+  config {
+    version = "8.0"
+    resources {
+      resource_preset_id = "b1.medium"
+      disk_size          = 20
+      disk_type_id       = "network-hdd"
+    }
+  }
+
+  host {
+    zone      = var.zone
+    subnet_id = yandex_vpc_subnet.default.id
+  }
+}
+
+resource "yandex_mdb_mysql_database" "app_db" {
+  cluster_id = yandex_mdb_mysql_cluster.default.id
+  name       = "appdb"
+}
+
+resource "yandex_mdb_mysql_user" "app_user" {
+  cluster_id = yandex_mdb_mysql_cluster.default.id
+  name       = "appuser"
+  password   = var.db_password
+
+  permission {
+    database_name = yandex_mdb_mysql_database.app_db.name
+    roles         = ["ALL"]
+  }
+}
+

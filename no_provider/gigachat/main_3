@@ -1,0 +1,154 @@
+terraform {
+  required_providers {
+    yandex = {
+      source = "yandex-cloud/yandex"
+    }
+  }
+  required_version = ">= 0.13"
+}
+
+provider "yandex" {
+  zone = "<зона_доступности_по_умолчанию>"
+}
+# Переменные окружения Yandex Cloud
+variable "zone" {
+  description = "Зона доступности ресурсов"
+  default     = "ru-central1-a"
+}
+
+variable "network_name" {
+  description = "Название сети"
+  default     = "default-network"
+}
+
+variable "subnet_cidr_block" {
+  description = "CIDR блока подсети"
+  default     = "10.130.0.0/24"
+}
+
+variable "mysql_version" {
+  description = "Версия MySQL"
+  default     = "8.0"
+}
+
+variable "mysql_username" {
+  description = "Имя пользователя MySQL"
+  default     = "admin"
+}
+
+variable "mysql_password" {
+  description = "Пароль пользователя MySQL"
+  sensitive   = true
+}
+
+variable "vm_image_family" {
+  description = "Семейство образа ОС VM"
+  default     = "ubuntu-2204-lts"
+}
+
+resource "yandex_vpc_network" "crm_network" {
+  name               = var.network_name
+  labels             = {}
+  folder_id          = "<укажите идентификатор каталога>"
+}
+
+resource "yandex_vpc_subnet" "crm_subnet" {
+  zone           = var.zone
+  network_id     = yandex_vpc_network.crm_network.id
+  v4_cidr_blocks = [var.subnet_cidr_block]
+  name           = "${var.network_name}-subnet"
+}
+
+resource "yandex_compute_instance_group" "crm_vm" {
+  name                 = "crm-instance-group"
+  instance_template {
+    platform_id        = "standard-v3"
+    resources {
+      cores            = 2
+      memory           = 4
+    }
+    boot_disk {
+      initialize_params {
+        image_family = var.vm_image_family
+      }
+    }
+    network_interface {
+      subnet_id              = yandex_vpc_subnet.crm_subnet.id
+      primary_v4_address {
+        one_to_one_nat       = true
+      }
+    }
+  }
+  scale_policy {
+    fixed_scale {
+      size                = 1
+    }
+  }
+  deploy_policy {
+    max_expand_size      = 1
+  }
+  load_balancer_state   = false
+}
+
+resource "yandex_mdb_mysql_cluster" "crm_db" {
+  name                   = "crm-mysql-cluster"
+  environment            = "PRODUCTION"
+  version                = var.mysql_version
+
+  host {
+    zone                  = var.zone
+    assign_public_ip      = true
+    subnet_id             = yandex_vpc_subnet.crm_subnet.id
+  }
+
+  resources {
+    resource_preset_id   = "s2.micro"
+    disk_type_id         = "network-hdd"
+    disk_size            = 10 # GB
+  }
+
+  user {
+    name                 = var.mysql_username
+    password             = var.mysql_password
+  }
+
+  database {
+    name                 = "crm_database"
+  }
+
+  access {
+    data_lens            = false
+    web_sql              = true
+  }
+}
+
+resource "yandex_compute_instance_group" "shop_vm" {
+  name                 = "shop-instance-group"
+  instance_template {
+    platform_id        = "standard-v3"
+    resources {
+      cores            = 2
+      memory           = 4
+    }
+    boot_disk {
+      initialize_params {
+        image_family = var.vm_image_family
+      }
+    }
+    network_interface {
+      subnet_id              = yandex_vpc_subnet.crm_subnet.id
+      primary_v4_address {
+        one_to_one_nat       = true
+      }
+    }
+  }
+  scale_policy {
+    fixed_scale {
+      size                = 1
+    }
+  }
+  deploy_policy {
+    max_expand_size      = 1
+  }
+  load_balancer_state   = false
+}

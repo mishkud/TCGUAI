@@ -1,0 +1,124 @@
+# Yandex Cloud Provider Configuration
+provider "yandex" {
+  service_account_key_file = var.service_account_key_file
+  cloud_id                  = var.cloud_id
+  folder_id                 = var.folder_id
+  zone                     = "ru-central1-a"
+}
+
+# Network and Subnet
+resource "yandex_vpc_network" "main_network" {
+  name = "main-network"
+}
+
+resource "yandex_vpc_subnet" "main_subnet" {
+  name       = "main-subnet"
+  zone       = "ru-central1-a"
+  network_id = yandex_vpc_network.main_network.id
+  v4_cidr_blocks = ["192.168.0.0/24"]
+}
+
+# Security Group
+resource "yandex_vpc_security_group" "main_sg" {
+  name = "main-security-group"
+  
+  ingress {
+    protocol    = "tcp"
+    port        = 22
+    from_port   = 22
+    to_port     = 22
+    v4_cidr_blocks = ["0.0.0.0/0"]
+  }
+  
+  ingress {
+    protocol    = "tcp"
+    port        = 3306
+    from_port   = 3306
+    to_port     = 3306
+    v4_cidr_blocks = ["192.168.0.0/24"]
+  }
+}
+
+# CRM Server
+resource "yandex_compute_instance" "crm_server" {
+  name = "crm-server"
+  platform = "STANDARD"
+  
+  resources {
+    memory = 8
+    cores = 2
+  }
+  
+  boot_disk {
+    initialize_params {
+      image_id = "fd85b25a-s1e2-4b71-921c-example"
+      size = 50
+    }
+  }
+  
+  network_interface {
+    subnet_id = yandex_vpc_subnet.main_subnet.id
+    security_group_ids = [yandex_vpc_security_group.main_sg.id]
+  }
+}
+
+# E-commerce Server
+resource "yandex_compute_instance" "ecommerce_server" {
+  name = "ecommerce-server"
+  platform = "STANDARD"
+  
+  resources {
+    memory = 8
+    cores = 2
+  }
+  
+  boot_disk {
+    initialize_params {
+      image_id = "fd85b25a-s1e2-4b71-921c-example"
+      size = 50
+    }
+  }
+  
+  network_interface {
+    subnet_id = yandex_vpc_subnet.main_subnet.id
+    security_group_ids = [yandex_vpc_security_group.main_sg.id]
+  }
+}
+
+# Managed MySQL
+resource "yandex_mdb_mysql_cluster" "mysql_cluster" {
+  name = "mysql-cluster"
+  environment = "PRODUCTION"
+  
+  config {
+    version = "8.0"
+    resources {
+      resource_preset_id = "s2.micro"
+    }
+    disk {
+      type = "network-ssd"
+      size = 10
+    }
+  }
+  
+  network_attachment {
+    subnet_id = yandex_vpc_subnet.main_subnet.id
+  }
+}
+
+# Variables
+variable "service_account_key_file" {
+  description = "Путь к файлу с ключом сервисного аккаунта Yandex Cloud"
+  type = string
+}
+
+variable "cloud_id" {
+  description = "ID облака Yandex Cloud"
+  type = string
+}
+
+variable "folder_id" {
+  description = "ID папки в Yandex Cloud"
+  type = string
+}
+

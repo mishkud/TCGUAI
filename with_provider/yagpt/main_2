@@ -1,0 +1,126 @@
+# Yandex Cloud Provider Configuration
+provider "yandex" {
+  # Укажите ваш сервисный аккаунт и облачную директорию
+  service_account_key_file = var.service_account_key_file
+  cloud_dir_id             = var.cloud_dir_id
+}
+
+# Создание сети
+resource "yandex_vpc_network" "main" {
+  name = "infra-network"
+}
+
+# Создание подсети
+resource "yandex_vpc_subnet" "main" {
+  name       = "infra-subnet"
+  network_id = yandex_vpc_network.main.id
+  zone       = "ru-central1-a"
+}
+
+# Создание безопасности группы
+resource "yandex_vpc_security_group" "infra_sg" {
+  name = "infra-security-group"
+  
+  ingress {
+    protocol    = "tcp"
+    port        = 22
+    from_port   = 22
+    to_port     = 22
+    v4_cidr_list = ["0.0.0.0/0"]
+  }
+  
+  ingress {
+    protocol    = "tcp"
+    port        = 3306
+    from_port   = 3306
+    to_port     = 3306
+    v4_cidr_list = ["0.0.0.0/0"]
+  }
+}
+
+# Виртуальная машина для CRM
+resource "yandex_compute_instance" "crm_vm" {
+  name = "crm-server"
+  zone = "ru-central1-a"
+  
+  resources {
+    memory = 8
+    cores  = 2
+  }
+  
+  boot_disk {
+    initialize_params {
+      image_id = "fd8r785tukepth5h9m2g" # CentOS 7
+      size     = 50
+    }
+  }
+  
+  network_interface {
+    subnet_id = yandex_vpc_subnet.main.id
+    security_group_ids = [yandex_vpc_security_group.infra_sg.id]
+  }
+}
+
+# Виртуальная машина для интернет-магазина
+resource "yandex_compute_instance" "shop_vm" {
+  name = "shop-server"
+  zone = "ru-central1-a"
+  
+  resources {
+    memory = 8
+    cores  = 2
+  }
+  
+  boot_disk {
+    initialize_params {
+      image_id = "fd8r785tukepth5h9m2g" # CentOS 7
+      size     = 50
+    }
+  }
+  
+  network_interface {
+    subnet_id = yandex_vpc_subnet.main.id
+    security_group_ids = [yandex_vpc_security_group.infra_sg.id]
+  }
+}
+
+# Managed MySQL Cluster
+resource "yandex_mdb_mysql_cluster" "mysql_cluster" {
+  name       = "mysql-cluster"
+  environment = "PRODUCTION"
+  network_id = yandex_vpc_network.main.id
+  
+  config_spec {
+    version = "8.0"
+    resources {
+      resource_preset_id = "b1.medium"
+      disk_size          = 100
+      disk_type_id       = "network-ssd"
+    }
+    user {
+      name     = "admin"
+      password = var.mysql_password
+    }
+  }
+  
+  host {
+    zone = "ru-central1-a"
+  }
+}
+
+# Переменные для ввода пользователем
+variable "service_account_key_file" {
+  description = "Путь к файлу с ключом сервисного аккаунта Yandex Cloud"
+  type        = string
+}
+
+variable "cloud_dir_id" {
+  description = "ID облачной директории Yandex Cloud"
+  type        = string
+}
+
+variable "mysql_password" {
+  description = "Пароль администратора MySQL"
+  type        = string
+}
+

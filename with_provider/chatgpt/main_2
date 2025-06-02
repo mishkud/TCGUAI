@@ -1,0 +1,127 @@
+provider "yandex" {
+  token     = var.yc_token
+  cloud_id  = var.cloud_id
+  folder_id = var.folder_id
+  zone      = "ru-central1-a"
+}
+
+resource "yandex_vpc_network" "default" {
+  name = "default-network"
+}
+
+resource "yandex_vpc_subnet" "default" {
+  name           = "default-subnet"
+  zone           = "ru-central1-a"
+  network_id     = yandex_vpc_network.default.id
+  v4_cidr_blocks = ["10.0.0.0/24"]
+}
+
+resource "yandex_iam_service_account" "default" {
+  name = "tf-service-account"
+}
+
+resource "yandex_resourcemanager_folder_iam_member" "editor" {
+  folder_id = var.folder_id
+  role      = "editor"
+  member    = "serviceAccount:${yandex_iam_service_account.default.id}"
+}
+
+resource "yandex_compute_instance" "crm" {
+  name        = "crm-vm"
+  zone        = "ru-central1-a"
+  platform_id = "standard-v1"
+
+  resources {
+    cores  = 2
+    memory = 2
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = data.yandex_compute_image.ubuntu.image_id
+    }
+  }
+
+  network_interface {
+    subnet_id = yandex_vpc_subnet.default.id
+    nat       = true
+  }
+
+  metadata = {
+    ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"
+  }
+}
+
+resource "yandex_compute_instance" "shop" {
+  name        = "shop-vm"
+  zone        = "ru-central1-a"
+  platform_id = "standard-v1"
+
+  resources {
+    cores  = 2
+    memory = 2
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = data.yandex_compute_image.ubuntu.image_id
+    }
+  }
+
+  network_interface {
+    subnet_id = yandex_vpc_subnet.default.id
+    nat       = true
+  }
+
+  metadata = {
+    ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"
+  }
+}
+
+resource "yandex_mdb_mysql_cluster" "mysql" {
+  name        = "mysql-cluster"
+  environment = "PRESTABLE"
+  network_id  = yandex_vpc_network.default.id
+  version     = "8.0"
+
+  resources {
+    resource_preset_id = "s2.micro"
+    disk_type_id       = "network-hdd"
+    disk_size          = 10
+  }
+
+  host {
+    zone      = "ru-central1-a"
+    subnet_id = yandex_vpc_subnet.default.id
+    name      = "mysql-host-1"
+  }
+
+  database {
+    name = "app_db"
+  }
+
+  user {
+    name     = "app_user"
+    password = "StrongPassword123" # <-- Пользователь должен изменить
+  }
+}
+
+data "yandex_compute_image" "ubuntu" {
+  family = "ubuntu-2004-lts"
+}
+
+variable "yc_token" {
+  description = "Yandex Cloud OAuth token"
+  type        = string
+}
+
+variable "cloud_id" {
+  description = "Cloud ID"
+  type        = string
+}
+
+variable "folder_id" {
+  description = "Folder ID"
+  type        = string
+}
+

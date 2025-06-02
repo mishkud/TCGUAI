@@ -1,0 +1,150 @@
+terraform {
+  required_providers {
+    yandex = {
+      source  = "yandex-cloud/yandex"
+      version = ">= 0.85.0"
+    }
+  }
+}
+
+provider "yandex" {
+  zone = "ru-central1-a"
+}
+
+# Переменные, которые пользователь может изменить
+locals {
+  cloud_id    = "your-cloud-id"          # Заменить на ваш cloud_id
+  folder_id   = "your-folder-id"         # Заменить на ваш folder_id
+  db_password = "your-secure-password"   # Заменить на надежный пароль для БД
+}
+
+# Создание сервисного аккаунта
+resource "yandex_iam_service_account" "sa" {
+  folder_id = local.folder_id
+  name      = "terraform-sa"
+}
+
+# Назначение роли сервисному аккаунту
+resource "yandex_resourcemanager_folder_iam_member" "sa-editor" {
+  folder_id = local.folder_id
+  role      = "editor"
+  member    = "serviceAccount:${yandex_iam_service_account.sa.id}"
+}
+
+# Создание статического ключа доступа
+resource "yandex_iam_service_account_static_access_key" "sa-static-key" {
+  service_account_id = yandex_iam_service_account.sa.id
+}
+
+# Создание сети
+resource "yandex_vpc_network" "network" {
+  name = "terraform-network"
+}
+
+# Создание подсети
+resource "yandex_vpc_subnet" "subnet" {
+  name           = "terraform-subnet"
+  zone           = "ru-central1-a"
+  network_id     = yandex_vpc_network.network.id
+  v4_cidr_blocks = ["192.168.10.0/24"]
+}
+
+# ВМ для CRM
+resource "yandex_compute_instance" "crm_vm" {
+  name        = "crm-vm"
+  platform_id = "standard-v3"
+  zone        = "ru-central1-a"
+
+  resources {
+    cores  = 2
+    memory = 4
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = "fd8vmcue7aajpmeo39kk" # Ubuntu 20.04 LTS
+      size     = 20
+    }
+  }
+
+  network_interface {
+    subnet_id = yandex_vpc_subnet.subnet.id
+    nat       = true
+  }
+
+  metadata = {
+    ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}" # Указать путь к вашему публичному SSH-ключу
+  }
+}
+
+# ВМ для интернет-магазина
+resource "yandex_compute_instance" "shop_vm" {
+  name        = "shop-vm"
+  platform_id = "standard-v3"
+  zone        = "ru-central1-a"
+
+  resources {
+    cores  = 2
+    memory = 4
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = "fd8vmcue7aajpmeo39kk" # Ubuntu 20.04 LTS
+      size     = 20
+    }
+  }
+
+  network_interface {
+    subnet_id = yandex_vpc_subnet.subnet.id
+    nat       = true
+  }
+
+  metadata = {
+    ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}" # Указать путь к вашему публичному SSH-ключу
+  }
+}
+
+# Managed MySQL база данных
+resource "yandex_mdb_mysql_cluster" "mysql" {
+  name        = "mysql-cluster"
+  environment = "PRESTABLE"
+  network_id  = yandex_vpc_network.network.id
+  version     = "8.0"
+
+  resources {
+    resource_preset_id = "s2.micro"
+    disk_type_id      = "network-ssd"
+    disk_size         = 20
+  }
+
+  database {
+    name = "crm_db"
+  }
+
+  user {
+    name     = "admin"
+    password = local.db_password
+    permission {
+      database_name = "crm_db"
+      roles        = ["ALL"]
+    }
+  }
+
+  host {
+    zone      = "ru-central1-a"
+    subnet_id = yandex_vpc_subnet.subnet.id
+  }
+}
+
+output "crm_vm_public_ip" {
+  value = yandex_compute_instance.crm_vm.network_interface.0.nat_ip_address
+}
+
+output "shop_vm_public_ip" {
+  value = yandex_compute_instance.shop_vm.network_interface.0.nat_ip_address
+}
+
+output "mysql_host_fqdn" {
+  value = yandex_mdb_mysql_cluster.mysql.host[0].fqdn
+}

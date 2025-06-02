@@ -1,0 +1,275 @@
+terraform {
+  required_providers {
+    yandex = {
+      source  = "yandex-cloud/yandex"
+      version = "~> 0.90" // Рекомендуется использовать актуальную версию провайдера
+    }
+  }
+}
+
+provider "yandex" {
+  // Если вы используете профиль аутентификации, отличный от 'default',
+  // или другие методы аутентификации, укажите их здесь.
+  // Например:
+  // token     = "YOUR_OAUTH_TOKEN" // Не рекомендуется для продакшена
+  // cloud_id  = "YOUR_CLOUD_ID"    // Обязательно, если не установлено в переменных окружения
+  // folder_id = "YOUR_FOLDER_ID"   // Обязательно, если не установлено в переменных окружения
+  // zone      = "ru-central1-a"    // Можно указать зону по умолчанию
+}
+
+// Пользователю необходимо указать свой folder_id
+variable "yc_folder_id" {
+  description = "Yandex Cloud Folder ID"
+  type        = string
+  // ЗАМЕНИТЕ ЭТО ЗНАЧЕНИЕ НА ВАШ FOLDER ID
+  // default     = "b1gXXXXXXXXXXXXXXXX"
+}
+
+// Определение сети
+resource "yandex_vpc_network" "default" {
+  name = "app-network"
+}
+
+// Определение подсети
+resource "yandex_vpc_subnet" "default" {
+  name           = "app-subnet-a"
+  zone           = "ru-central1-a" // Пользователь может изменить зону
+  network_id     = yandex_vpc_network.default.id
+  v4_cidr_blocks = ["10.1.0.0/24"]
+}
+
+// Группа безопасности по умолчанию (разрешает входящий трафик на порты 22, 80, 443, 3306 из любого источника)
+// ВНИМАНИЕ: В продакшене рекомендуется ограничить cidr_blocks для большей безопасности.
+resource "yandex_vpc_security_group" "default" {
+  name        = "default-sg"
+  network_id  = yandex_vpc_network.default.id
+
+  ingress {
+    protocol       = "TCP"
+    description    = "SSH"
+    v4_cidr_blocks = ["0.0.0.0/0"]
+    port           = 22
+  }
+
+  ingress {
+    protocol       = "TCP"
+    description    = "HTTP"
+    v4_cidr_blocks = ["0.0.0.0/0"]
+    port           = 80
+  }
+
+  ingress {
+    protocol       = "TCP"
+    description    = "HTTPS"
+    v4_cidr_blocks = ["0.0.0.0/0"]
+    port           = 443
+  }
+
+  ingress {
+    protocol       = "TCP"
+    description    = "MySQL for internal access" // Доступ к MySQL изнутри сети
+    v4_cidr_blocks = [yandex_vpc_subnet.default.v4_cidr_blocks[0]] // Доступ из нашей подсети
+    // Если нужен доступ извне (не рекомендуется для БД):
+    // v4_cidr_blocks = ["0.0.0.0/0"]
+    port           = 3306
+  }
+
+  egress {
+    protocol       = "ANY"
+    description    = "Allow all outgoing traffic"
+    v4_cidr_blocks = ["0.0.0.0/0"]
+    from_port      = 0
+    to_port        = 65535
+  }
+}
+
+// Виртуальная машина для CRM
+resource "yandex_compute_instance" "crm_vm" {
+  name        = "crm-vm"
+  platform_id = "standard-v3" // Можно выбрать другую платформу
+  zone        = yandex_vpc_subnet.default.zone
+
+  resources {
+    cores  = 2
+    memory = 2
+  }
+
+  boot_disk {
+    initialize_params {
+      // Пользователь может изменить image_id на нужный
+      // Список образов: yc image list --folder-id standard-images
+      image_id = "fd8vlj3g54hm9k134rgq" // Пример: Ubuntu 22.04 LTS
+      size     = 10 // Размер диска в ГБ
+    }
+  }
+
+  network_interface {
+    subnet_id          = yandex_vpc_subnet.default.id
+    nat                = true // Включить NAT для доступа в интернет
+    security_group_ids = [yandex_vpc_security_group.default.id]
+  }
+
+  metadata = {
+    // ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}" // Раскомментируйте и укажите путь к вашему публичному SSH ключу
+    user-data = <<-EOF
+      #cloud-config
+      users:
+        - name: yc-user
+          groups: sudo
+          shell: /bin/bash
+          sudo: ['ALL=(ALL) NOPASSWD:ALL']
+          ssh-authorized-keys:
+            - # Вставьте ваш публичный SSH ключ здесь, например: ssh-rsa AAAA...
+    EOF
+  }
+
+  folder_id = var.yc_folder_id
+}
+
+// Виртуальная машина для интернет-магазина
+resource "yandex_compute_instance" "shop_vm" {
+  name        = "shop-vm"
+  platform_id = "standard-v3"
+  zone        = yandex_vpc_subnet.default.zone
+
+  resources {
+    cores  = 2
+    memory = 2
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = "fd8vlj3g54hm9k134rgq" // Пример: Ubuntu 22.04 LTS
+      size     = 10
+    }
+  }
+
+  network_interface {
+    subnet_id          = yandex_vpc_subnet.default.id
+    nat                = true
+    security_group_ids = [yandex_vpc_security_group.default.id]
+  }
+
+  metadata = {
+    // ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}" // Раскомментируйте и укажите путь к вашему публичному SSH ключу
+    user-data = <<-EOF
+      #cloud-config
+      users:
+        - name: yc-user
+          groups: sudo
+          shell: /bin/bash
+          sudo: ['ALL=(ALL) NOPASSWD:ALL']
+          ssh-authorized-keys:
+            - # Вставьте ваш публичный SSH ключ здесь, например: ssh-rsa AAAA...
+    EOF
+  }
+
+  folder_id = var.yc_folder_id
+}
+
+// Managed база данных MySQL
+resource "yandex_mdb_mysql_cluster" "mysql_cluster" {
+  name                = "app-mysql-cluster"
+  environment         = "PRESTABLE" // или "PRODUCTION" для производственной среды
+  network_id          = yandex_vpc_network.default.id
+  folder_id           = var.yc_folder_id
+  security_group_ids  = [yandex_vpc_security_group.default.id]
+
+  resources {
+    resource_preset_id = "s3.medium" // Минимальный подходящий тип, можно изменить
+    disk_size            = 10         // Размер диска в ГБ
+    disk_type_id         = "network-ssd"
+  }
+
+  host {
+    zone      = yandex_vpc_subnet.default.zone
+    subnet_id = yandex_vpc_subnet.default.id
+    name      = "mysql-host-a" // Имя хоста должно быть уникальным FQDN в пределах подсети, если assign_public_ip = false
+  }
+
+  // Можно добавить больше хостов для отказоустойчивости
+  // host {
+  //   zone      = "ru-central1-b" // Другая зона
+  //   subnet_id = yandex_vpc_subnet.default.id // или другая подсеть в той же сети
+  // }
+
+  database {
+    name = "crm_db" // Имя базы данных для CRM
+  }
+
+  database {
+    name = "shop_db" // Имя базы данных для интернет-магазина
+  }
+
+  user {
+    name     = "appuser" // Пользователь может изменить имя пользователя
+    password = "SecurePassword123!" // ПОЛЬЗОВАТЕЛЬ ДОЛЖЕН ИЗМЕНИТЬ ЭТОТ ПАРОЛЬ!
+    permission {
+      database_name = "crm_db"
+      roles         = ["ALL"] // Или более гранулированные права, например ["SELECT", "INSERT", "UPDATE", "DELETE"]
+    }
+    permission {
+      database_name = "shop_db"
+      roles         = ["ALL"]
+    }
+  }
+
+  maintenance_window {
+    type = "ANYTIME" // или "WEEKLY" для указания конкретного времени
+  }
+
+  backup_window_start {
+    hours   = 23 // Время начала окна резервного копирования (UTC)
+    minutes = 0
+  }
+
+  deletion_protection = false // Установите в true для защиты от случайного удаления в продакшене
+}
+
+// Вывод информации для подключения
+output "crm_vm_external_ip" {
+  description = "External IP address of the CRM VM"
+  value       = yandex_compute_instance.crm_vm.network_interface[0].nat_ip_address
+}
+
+output "shop_vm_external_ip" {
+  description = "External IP address of the Shop VM"
+  value       = yandex_compute_instance.shop_vm.network_interface[0].nat_ip_address
+}
+
+output "mysql_cluster_connection_info" {
+  description = "MySQL Cluster Connection Info (use internal IPs from your VMs)"
+  value = {
+    hostnames = [for host in yandex_mdb_mysql_cluster.mysql_cluster.hosts : host.fqdn]
+    port      = 3306 // Стандартный порт MySQL
+    // Внутренний FQDN первого хоста для простоты доступа
+    // (обычно нужно подключаться к FQDN кластера, если он доступен, или использовать коннекторы,
+    // которые умеют работать с несколькими хостами)
+    primary_host_fqdn_internal = yandex_mdb_mysql_cluster.mysql_cluster.hosts[0].fqdn
+    // Для подключения из ВМ используйте внутренние FQDN хостов кластера,
+    // которые будут доступны в рамках той же VPC сети.
+    // Публичный доступ к Managed MySQL по умолчанию не предоставляется из соображений безопасности.
+    // Если он необходим (не рекомендуется), нужно настроить `host.assign_public_ip = true`
+    // и соответствующим образом сконфигурировать группу безопасности.
+  }
+}
+
+output "mysql_user" {
+  description = "MySQL User for applications"
+  value       = yandex_mdb_mysql_cluster.mysql_cluster.user[0].name
+}
+
+output "mysql_password_warning" {
+  description = "IMPORTANT: The default MySQL password should be changed!"
+  value       = "Please change the default password ('SecurePassword123!') for the 'appuser' in the MySQL cluster."
+}
+
+output "ssh_user_for_vms" {
+  description = "Default user created on VMs for SSH access (if SSH key was provided in metadata)"
+  value       = "yc-user (if you provided an SSH key in user-data)"
+}
+
+output "folder_id_used" {
+  description = "The Yandex Cloud Folder ID used for deploying resources."
+  value       = var.yc_folder_id
+}

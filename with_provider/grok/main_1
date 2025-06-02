@@ -1,0 +1,183 @@
+# Конфигурация провайдера Yandex Cloud
+# Пользователь должен указать свои учетные данные
+terraform {
+  required_providers {
+    yandex = {
+      source  = "yandex-cloud/yandex"
+      version = ">= 0.129.0"
+    }
+  }
+}
+
+provider "yandex" {
+  # Укажите OAuth токен или путь к файлу с ключом сервисного аккаунта
+  # token = "your-oauth-token" # Раскомментируйте и укажите токен
+  service_account_key_file = "key.json" # Или укажите путь к файлу с ключом
+  cloud_id  = "your-cloud-id"  # Укажите ваш cloud_id
+  folder_id = "your-folder-id" # Укажите ваш folder_id
+  zone      = "ru-central1-a"  # Зона доступности
+}
+
+# Сеть и подсеть
+resource "yandex_vpc_network" "network" {
+  name = "app-network"
+}
+
+resource "yandex_vpc_subnet" "subnet" {
+  name           = "app-subnet"
+  zone           = "ru-central1-a"
+  network_id     = yandex_vpc_network.network.id
+  v4_cidr_blocks = ["192.168.10.0/24"]
+}
+
+# Группа безопасности
+resource "yandex_vpc_security_group" "app_sg" {
+  name        = "app-security-group"
+  network_id  = yandex_vpc_network.network.id
+
+  # Разрешаем SSH
+  ingress {
+    protocol       = "TCP"
+    description    = "SSH access"
+    v4_cidr_blocks = ["0.0.0.0/0"]
+    port           = 22
+  }
+
+  # Разрешаем HTTP/HTTPS для интернет-магазина
+  ingress {
+    protocol       = "TCP"
+    description    = "HTTP access"
+    v4_cidr_blocks = ["0.0.0.0/0"]
+    port           = 80
+  }
+
+  ingress {
+    protocol       = "TCP"
+    description    = "HTTPS access"
+    v4_cidr_blocks = ["0.0.0.0/0"]
+    port           = 443
+  }
+
+  # Разрешаем подключение к MySQL внутри сети
+  ingress {
+    protocol       = "TCP"
+    description    = "MySQL access"
+    v4_cidr_blocks = ["192.168.10.0/24"]
+    port           = 3306
+  }
+
+  # Разрешаем исходящий трафик
+  egress {
+    protocol       = "ANY"
+    description    = "Allow all outbound"
+    v4_cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+# Виртуальная машина для CRM
+resource "yandex_compute_instance" "crm_vm" {
+  name        = "crm-vm"
+  platform_id = "standard-v3"
+  zone        = "ru-central1-a"
+
+  resources {
+    cores  = 2
+    memory = 4
+    core_fraction = 20 # Экономичная конфигурация
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = "fd8rcgu9f3g4ppm3na1l" # Ubuntu 22.04 LTS
+      size     = 20
+      type     = "network-hdd"
+    }
+  }
+
+  network_interface {
+    subnet_id = yandex_vpc_subnet.subnet.id
+    nat       = true
+    security_group_ids = [yandex_vpc_security_group.app_sg.id]
+  }
+
+  metadata = {
+    ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}" # Укажите путь к вашему публичному SSH ключу
+  }
+}
+
+# Виртуальная машина для интернет-магазина
+resource "yandex_compute_instance" "store_vm" {
+  name        = "store-vm"
+  platform_id = "standard-v3"
+  zone        = "ru-central1-a"
+
+  resources {
+    cores  = 2
+    memory = 4
+    core_fraction = 20
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = "fd8rcgu9f3g4ppm3na1l" # Ubuntu 22.04 LTS
+      size     = 20
+      type     = "network-hdd"
+    }
+  }
+
+  network_interface {
+    subnet_id = yandex_vpc_subnet.subnet.id
+    nat       = true
+    security_group_ids = [yandex_vpc_security_group.app_sg.id]
+  }
+
+  metadata = {
+    ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}" # Укажите путь к вашему публичному SSH ключу
+  }
+}
+
+# Managed MySQL база данных
+resource "yandex_mdb_mysql_cluster" "mysql_cluster" {
+  name        = "app-mysql"
+  environment = "PRODUCTION"
+  network_id  = yandex_vpc_network.network.id
+  version     = "8.0"
+  security_group_ids = [yandex_vpc_security_group.app_sg.id]
+
+  resources {
+    resource_preset_id = "s2.micro" # 2 vCPU, 8 GB RAM
+    disk_type_id       = "network-ssd"
+    disk_size          = 10
+  }
+
+  host {
+    zone      = "ru-central1-a"
+    subnet_id = yandex_vpc_subnet.subnet.id
+  }
+
+  database {
+    name = "app_db"
+  }
+
+  user {
+    name     = "app_user"
+    password = "your-secure-password" # Укажите надежный пароль
+    permission {
+      database_name = "app_db"
+      roles         = ["ALL"]
+    }
+  }
+}
+
+# Вывод IP адресов ВМ
+output "crm_vm_external_ip" {
+  value = yandex_compute_instance.crm_vm.network_interface.0.nat_ip_address
+}
+
+output "store_vm_external_ip" {
+  value = yandex_compute_instance.store_vm.network_interface.0.nat_ip_address
+}
+
+output "mysql_cluster_host" {
+  value = yandex_mdb_mysql_cluster.mysql_cluster.host[0].fqdn
+}

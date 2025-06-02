@@ -1,0 +1,131 @@
+terraform {
+  required_providers {
+    yandex = {
+      source = "yandex-cloud/yandex"
+    }
+  }
+  required_version = ">= 0.13"
+}
+
+provider "yandex" {
+  zone = "<зона_доступности_по_умолчанию>"
+}
+
+# variables.tf (неявные переменные, которые пользователь может переопределить)
+variable "yc_zone" {
+  description = "Зона доступности Yandex Cloud"
+  type        = string
+  default     = "ru-central1-a"
+}
+
+variable "vm_crm_image_id" {
+  description = "ID образа для VM с CRM"
+  type        = string
+  default     = "fd827b91d99psvq5fjit" # Ubuntu 20.04 LTS
+}
+
+variable "vm_shop_image_id" {
+  description = "ID образа для VM с интернет-магазином"
+  type        = string
+  default     = "fd827b91d99psvq5fjit" # Ubuntu 20.04 LTS
+}
+
+# Ресурсы инфраструктуры
+resource "yandex_vpc_network" "default" {
+  name = "net"
+}
+
+resource "yandex_vpc_subnet" "default" {
+  name           = "subnet"
+  zone           = var.yc_zone
+  network_id     = yandex_vpc_network.default.id
+  v4_cidr_blocks = ["192.168.10.0/24"]
+}
+
+# Виртуальная машина для CRM
+resource "yandex_compute_instance" "crm" {
+  name        = "crm-vm"
+  platform_id = "standard-v1"
+  zone        = var.yc_zone
+
+  resources {
+    cores  = 2
+    memory = 4
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = var.vm_crm_image_id
+      size     = 20
+    }
+  }
+
+  network_interface {
+    subnet_id = yandex_vpc_subnet.default.id
+    nat       = true
+  }
+
+  metadata = {
+    ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"
+  }
+}
+
+# Виртуальная машина для интернет-магазина
+resource "yandex_compute_instance" "shop" {
+  name        = "shop-vm"
+  platform_id = "standard-v1"
+  zone        = var.yc_zone
+
+  resources {
+    cores  = 2
+    memory = 4
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = var.vm_shop_image_id
+      size     = 20
+    }
+  }
+
+  network_interface {
+    subnet_id = yandex_vpc_subnet.default.id
+    nat       = true
+  }
+
+  metadata = {
+    ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"
+  }
+}
+
+# Managed база данных MySQL
+resource "yandex_mdb_mysql_cluster" "mysql" {
+  name        = "mysql-cluster"
+  environment = "PRESTABLE"
+  network_id  = yandex_vpc_network.default.id
+  version     = "8.0"
+
+  resources {
+    resource_preset_id = "s2.micro"
+    disk_type_id      = "network-ssd"
+    disk_size         = 20
+  }
+
+  host {
+    zone      = var.yc_zone
+    subnet_id = yandex_vpc_subnet.default.id
+  }
+}
+
+# Вывод важных параметров
+output "crm_vm_public_ip" {
+  value = yandex_compute_instance.crm.network_interface.0.nat_ip_address
+}
+
+output "shop_vm_public_ip" {
+  value = yandex_compute_instance.shop.network_interface.0.nat_ip_address
+}
+
+output "mysql_host" {
+  value = yandex_mdb_mysql_cluster.mysql.host[0].fqdn
+}

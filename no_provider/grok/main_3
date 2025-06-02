@@ -1,0 +1,80 @@
+Переменные для конфигурации
+
+variable "cloud_id" { description = "ID облака в Yandex Cloud" type = string }
+
+variable "folder_id" { description = "ID каталога в Yandex Cloud" type = string }
+
+variable "zone" { description = "Зона доступности, например ru-central1-a" type = string default = "ru-central1-a" }
+
+Сеть и подсеть
+
+resource "yandex_vpc_network" "network" { name = "app-network" }
+
+resource "yandex_vpc_subnet" "subnet" { name = "app-subnet" zone = var.zone network_id = yandex_vpc_network.network.id v4_cidr_blocks = ["10.0.0.0/24"] }
+
+Виртуальная машина для CRM
+
+resource "yandex_compute_instance" "crm_vm" { name = "crm-vm" platform_id = "standard-v3" zone = var.zone
+
+resources { cores = 2 memory = 4 }
+
+boot_disk { initialize_params { image_id = "fd8kdq6djp6e3i3q5l6b" # Ubuntu 22.04 LTS, проверьте актуальный ID образа size = 20 } }
+
+network_interface { subnet_id = yandex_vpc_subnet.subnet.id nat = true # Внешний IP для доступа }
+
+metadata = { ssh-keys = "ubuntu:ssh-rsa <YOUR_SSH_PUBLIC_KEY>" # Замените на ваш публичный SSH-ключ } }
+
+Виртуальная машина для интернет-магазина
+
+resource "yandex_compute_instance" "shop_vm" { name = "shop-vm" platform_id = "standard-v3" zone = var.zone
+
+resources { cores = 2 memory = 4 }
+
+boot_disk { initialize_params { image_id = "fd8kdq6djp6e3i3q5l6b" # Ubuntu 22.04 LTS, проверьте актуальный ID образа size = 20 } }
+
+network_interface { subnet_id = yandex_vpc_subnet.subnet.id nat = true # Внешний IP для доступа }
+
+metadata = { ssh-keys = "ubuntu:ssh-rsa <YOUR_SSH_PUBLIC_KEY>" # Замените на ваш публичный SSH-ключ } }
+
+Managed MySQL база данных
+
+resource "yandex_mdb_mysql_cluster" "mysql_cluster" { name = "app-mysql" environment = "PRODUCTION" network_id = yandex_vpc_network.network.id version = "8.0"
+
+resources { resource_preset_id = "s2.micro" # Минимальная конфигурация disk_type_id = "network-ssd" disk_size = 20 }
+
+mysql_config = { sql_mode = "ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION" }
+
+host { zone = var.zone subnet_id = yandex_vpc_subnet.subnet.id } }
+
+Создание базы данных в MySQL
+
+resource "yandex_mdb_mysql_database" "app_db" { cluster_id = yandex_mdb_mysql_cluster.mysql_cluster.id name = "app_db" }
+
+Создание пользователя MySQL
+
+resource "yandex_mdb_mysql_user" "app_user" { cluster_id = yandex_mdb_mysql_cluster.mysql_cluster.id name = "app_user" password = "SecurePassword123!" # Замените на надежный пароль permission { database_name = yandex_mdb_mysql_database.app_db.name roles = ["ALL"] } }
+
+Вывод данных для подключения
+
+output "crm_vm_external_ip" { description = "Внешний IP адрес виртуальной машины CRM" value = yandex_compute_instance.crm_vm.network_interface.0.nat_ip_address }
+
+output "shop_vm_external_ip" { description = "Внешний IP адрес виртуальной машины интернет-магазина" value = yandex_compute_instance.shop_vm.network_interface.0.nat_ip_address }
+
+output "mysql_host" { description = "Хост MySQL кластера" value = yandex_mdb_mysql_cluster.mysql_cluster.host.0.fqdn }
+
+output "mysql_user" { description = "Имя пользователя MySQL" value = yandex_mdb_mysql_user.app_user.name }
+
+output "mysql_password" { description = "Пароль пользователя MySQL" value = yandex_mdb_mysql_user.app_user.password sensitive = true }terraform {
+  required_providers {
+    yandex = {
+      source = "yandex-cloud/yandex"
+    }
+  }
+  required_version = ">= 0.13"
+}
+
+provider "yandex" {
+  zone = "<зона_доступности_по_умолчанию>"
+}
+
+

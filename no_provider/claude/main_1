@@ -1,0 +1,212 @@
+terraform {
+  required_providers {
+    yandex = {
+      source = "yandex-cloud/yandex"
+    }
+  }
+  required_version = ">= 0.13"
+}
+
+provider "yandex" {
+  zone = "<зона_доступности_по_умолчанию>"
+}
+
+# Объявление переменных
+variable "zone" {
+  description = "Зона доступности для ресурсов"
+  default     = "ru-central1-a"
+}
+
+variable "network_name" {
+  description = "Название сети"
+  default     = "crm-shop-network"
+}
+
+variable "subnet_name" {
+  description = "Название подсети"
+  default     = "crm-shop-subnet"
+}
+
+variable "subnet_cidr" {
+  description = "CIDR блок для подсети"
+  default     = "192.168.10.0/24"
+}
+
+variable "crm_vm_name" {
+  description = "Имя ВМ для CRM"
+  default     = "crm-server"
+}
+
+variable "shop_vm_name" {
+  description = "Имя ВМ для интернет-магазина"
+  default     = "shop-server"
+}
+
+variable "vm_image_id" {
+  description = "ID образа для ВМ"
+  default     = "fd80mrhj8fl2oe87o4e1" # Ubuntu 20.04 LTS
+}
+
+variable "vm_platform_id" {
+  description = "Тип платформы для ВМ"
+  default     = "standard-v1"
+}
+
+variable "vm_resources" {
+  description = "Ресурсы для ВМ"
+  type        = map(number)
+  default = {
+    cores         = 2
+    memory        = 4  # ГБ
+    core_fraction = 20 # % использования CPU
+  }
+}
+
+variable "db_name" {
+  description = "Имя базы данных"
+  default     = "crm_shop_db"
+}
+
+variable "mysql_version" {
+  description = "Версия MySQL"
+  default     = "8.0"
+}
+
+variable "mysql_user" {
+  description = "Имя пользователя MySQL"
+  default     = "user"
+}
+
+variable "mysql_password" {
+  description = "Пароль пользователя MySQL"
+  default     = "PassW0rd!" # Рекомендуется изменить
+}
+
+# Создание сети
+resource "yandex_vpc_network" "network" {
+  name = var.network_name
+}
+
+# Создание подсети
+resource "yandex_vpc_subnet" "subnet" {
+  name           = var.subnet_name
+  zone           = var.zone
+  network_id     = yandex_vpc_network.network.id
+  v4_cidr_blocks = [var.subnet_cidr]
+}
+
+# Создание ВМ для CRM
+resource "yandex_compute_instance" "crm_vm" {
+  name        = var.crm_vm_name
+  platform_id = var.vm_platform_id
+  zone        = var.zone
+
+  resources {
+    cores         = var.vm_resources.cores
+    memory        = var.vm_resources.memory
+    core_fraction = var.vm_resources.core_fraction
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = var.vm_image_id
+      size     = 15 # ГБ
+    }
+  }
+
+  network_interface {
+    subnet_id = yandex_vpc_subnet.subnet.id
+    nat       = true
+  }
+
+  metadata = {
+    ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}" # Путь к публичному ключу
+  }
+}
+
+# Создание ВМ для интернет-магазина
+resource "yandex_compute_instance" "shop_vm" {
+  name        = var.shop_vm_name
+  platform_id = var.vm_platform_id
+  zone        = var.zone
+
+  resources {
+    cores         = var.vm_resources.cores
+    memory        = var.vm_resources.memory
+    core_fraction = var.vm_resources.core_fraction
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = var.vm_image_id
+      size     = 15 # ГБ
+    }
+  }
+
+  network_interface {
+    subnet_id = yandex_vpc_subnet.subnet.id
+    nat       = true
+  }
+
+  metadata = {
+    ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}" # Путь к публичному ключу
+  }
+}
+
+# Создание кластера MySQL
+resource "yandex_mdb_mysql_cluster" "mysql_cluster" {
+  name        = var.db_name
+  environment = "PRODUCTION"
+  network_id  = yandex_vpc_network.network.id
+  version     = var.mysql_version
+  
+  resources {
+    resource_preset_id = "b1.medium" # 2 vCPU, 8 GB RAM
+    disk_type_id       = "network-ssd"
+    disk_size          = 20 # ГБ
+  }
+
+  host {
+    zone      = var.zone
+    subnet_id = yandex_vpc_subnet.subnet.id
+  }
+}
+
+# Создание базы данных
+resource "yandex_mdb_mysql_database" "database" {
+  cluster_id = yandex_mdb_mysql_cluster.mysql_cluster.id
+  name       = "main_db"
+}
+
+# Создание пользователя MySQL
+resource "yandex_mdb_mysql_user" "user" {
+  cluster_id = yandex_mdb_mysql_cluster.mysql_cluster.id
+  name       = var.mysql_user
+  password   = var.mysql_password
+  
+  permission {
+    database_name = yandex_mdb_mysql_database.database.name
+    roles         = ["ALL"]
+  }
+}
+
+# Выходные данные
+output "crm_external_ip" {
+  value = yandex_compute_instance.crm_vm.network_interface.0.nat_ip_address
+  description = "Внешний IP-адрес VM для CRM"
+}
+
+output "shop_external_ip" {
+  value = yandex_compute_instance.shop_vm.network_interface.0.nat_ip_address
+  description = "Внешний IP-адрес VM для интернет-магазина"
+}
+
+output "mysql_host" {
+  value = yandex_mdb_mysql_cluster.mysql_cluster.host[0].fqdn
+  description = "Хост для подключения к MySQL"
+}
+
+output "mysql_connection_info" {
+  value = "mysql -u ${var.mysql_user} -h ${yandex_mdb_mysql_cluster.mysql_cluster.host[0].fqdn} -p"
+  description = "Команда для подключения к MySQL"
+}

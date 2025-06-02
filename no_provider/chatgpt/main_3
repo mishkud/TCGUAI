@@ -1,0 +1,140 @@
+terraform {
+  required_providers {
+    yandex = {
+      source = "yandex-cloud/yandex"
+    }
+  }
+  required_version = ">= 0.13"
+}
+
+provider "yandex" {
+  zone = "<зона_доступности_по_умолчанию>"
+}
+
+variable "zone" {
+  default = "ru-central1-a"
+}
+
+variable "network_name" {
+  default = "default"
+}
+
+variable "subnet_name" {
+  default = "default-ru-central1-a"
+}
+
+variable "db_user" {
+  default = "user" # Укажите имя пользователя для MySQL
+}
+
+variable "db_password" {
+  default = "ChangeMe123!" # Измените на надежный пароль
+}
+
+variable "db_name" {
+  default = "appdb" # Название базы данных
+}
+
+resource "yandex_compute_instance" "crm" {
+  name        = "crm-vm"
+  platform_id = "standard-v1"
+  zone        = var.zone
+
+  resources {
+    cores  = 2
+    memory = 2
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = "fd8g7qefh8k3v8n31o2s" # Ubuntu 22.04 LTS; проверьте актуальность
+      size     = 20
+    }
+  }
+
+  network_interface {
+    subnet_id = yandex_vpc_subnet.default.id
+    nat       = true
+  }
+
+  metadata = {
+    ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}" # Замените на путь к вашему публичному ключу
+  }
+}
+
+resource "yandex_compute_instance" "store" {
+  name        = "store-vm"
+  platform_id = "standard-v1"
+  zone        = var.zone
+
+  resources {
+    cores  = 2
+    memory = 2
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = "fd8g7qefh8k3v8n31o2s"
+      size     = 20
+    }
+  }
+
+  network_interface {
+    subnet_id = yandex_vpc_subnet.default.id
+    nat       = true
+  }
+
+  metadata = {
+    ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"
+  }
+}
+
+resource "yandex_vpc_network" "default" {
+  name = var.network_name
+}
+
+resource "yandex_vpc_subnet" "default" {
+  name           = var.subnet_name
+  zone           = var.zone
+  network_id     = yandex_vpc_network.default.id
+  v4_cidr_blocks = ["10.0.0.0/24"]
+}
+
+resource "yandex_mdb_mysql_cluster" "mysql" {
+  name        = "mysql-cluster"
+  environment = "PRESTABLE"
+  network_id  = yandex_vpc_network.default.id
+
+  config {
+    version = "8.0"
+    resources {
+      resource_preset_id = "s2.micro"
+      disk_size          = 20
+      disk_type_id       = "network-ssd"
+    }
+
+    backup_window_start {
+      hours   = 23
+      minutes = 0
+    }
+  }
+
+  database {
+    name = var.db_name
+  }
+
+  user {
+    name     = var.db_user
+    password = var.db_password
+
+    permission {
+      database_name = var.db_name
+    }
+  }
+
+  host {
+    zone      = var.zone
+    subnet_id = yandex_vpc_subnet.default.id
+  }
+}
+

@@ -1,0 +1,160 @@
+terraform {
+  required_providers {
+    yandex = {
+      source = "yandex-cloud/yandex"
+    }
+  }
+  required_version = ">= 0.13"
+}
+
+provider "yandex" {
+  zone = "<зона_доступности_по_умолчанию>"
+}
+
+############################################
+# VARIABLES
+############################################
+
+variable "zone" {
+  description = "Zone to deploy resources in"
+  default     = "ru-central1-a"
+}
+
+variable "network_name" {
+  default = "main-network"
+}
+
+variable "subnet_name" {
+  default = "main-subnet"
+}
+
+variable "vm_image_family" {
+  default = "ubuntu-2204-lts"
+}
+
+variable "vm_image_platform_id" {
+  default = "standard-v1"
+}
+
+variable "vm_username" {
+  default = "ubuntu"
+}
+
+############################################
+# NETWORK
+############################################
+
+resource "yandex_vpc_network" "main" {
+  name = var.network_name
+}
+
+resource "yandex_vpc_subnet" "main" {
+  name           = var.subnet_name
+  zone           = var.zone
+  network_id     = yandex_vpc_network.main.id
+  v4_cidr_blocks = ["10.0.0.0/24"]
+}
+
+############################################
+# VIRTUAL MACHINES
+############################################
+
+# CRM VM
+resource "yandex_compute_instance" "crm_vm" {
+  name        = "crm-vm"
+  platform_id = var.vm_image_platform_id
+  zone        = var.zone
+
+  resources {
+    cores  = 2
+    memory = 2
+  }
+
+  boot_disk {
+    initialize_params {
+      image_family = var.vm_image_family
+    }
+  }
+
+  network_interface {
+    subnet_id = yandex_vpc_subnet.main.id
+    nat       = true
+  }
+
+  metadata = {
+    ssh-keys = "${var.vm_username}:${file("~/.ssh/id_rsa.pub")}"
+  }
+}
+
+# Shop VM
+resource "yandex_compute_instance" "shop_vm" {
+  name        = "shop-vm"
+  platform_id = var.vm_image_platform_id
+  zone        = var.zone
+
+  resources {
+    cores  = 2
+    memory = 2
+  }
+
+  boot_disk {
+    initialize_params {
+      image_family = var.vm_image_family
+    }
+  }
+
+  network_interface {
+    subnet_id = yandex_vpc_subnet.main.id
+    nat       = true
+  }
+
+  metadata = {
+    ssh-keys = "${var.vm_username}:${file("~/.ssh/id_rsa.pub")}"
+  }
+}
+
+############################################
+# MANAGED MYSQL DATABASE
+############################################
+
+resource "yandex_mdb_mysql_cluster" "mysql_cluster" {
+  name        = "mysql-cluster"
+  environment = "PRESTABLE"  # можно заменить на "PRODUCTION"
+  network_id  = yandex_vpc_network.main.id
+
+  config {
+    version = "8.0"
+    resources {
+      resource_preset_id = "s2.micro"
+      disk_type_id       = "network-ssd"
+      disk_size          = 10
+    }
+
+    backup_window_start {
+      hours   = 23
+      minutes = 0
+    }
+  }
+
+  host {
+    zone      = var.zone
+    subnet_id = yandex_vpc_subnet.main.id
+    assign_public_ip = true
+  }
+}
+
+resource "yandex_mdb_mysql_database" "app_db" {
+  cluster_id = yandex_mdb_mysql_cluster.mysql_cluster.id
+  name       = "appdb"
+}
+
+resource "yandex_mdb_mysql_user" "app_user" {
+  cluster_id = yandex_mdb_mysql_cluster.mysql_cluster.id
+  name       = "appuser"
+  password   = "P@ssw0rd123" # рекомендуется изменить
+  permissions {
+    database_name = yandex_mdb_mysql_database.app_db.name
+    roles         = ["ALL"]
+  }
+}
+

@@ -1,0 +1,265 @@
+terraform {
+  required_providers {
+    yandex = {
+      source = "yandex-cloud/yandex"
+    }
+  }
+  required_version = ">= 0.13"
+}
+
+provider "yandex" {
+  zone = "<зона_доступности_по_умолчанию>"
+}
+
+# ------------------------------------------------------------------------------
+# ОПРЕДЕЛЕНИЕ ПЕРЕМЕННЫХ
+# Пользователь должен изменить значения этих переменных
+# перед применением конфигурации.
+# ------------------------------------------------------------------------------
+
+variable "yc_zone" {
+  description = "Зона доступности Yandex Cloud"
+  type        = string
+  default     = "ru-central1-a" # Пример, измените на нужную вам зону
+}
+
+variable "yc_crm_instance_name" {
+  description = "Имя виртуальной машины для CRM"
+  type        = string
+  default     = "crm-vm"
+}
+
+variable "yc_shop_instance_name" {
+  description = "Имя виртуальной машины для интернет-магазина"
+  type        = string
+  default     = "shop-vm"
+}
+
+variable "yc_mysql_cluster_name" {
+  description = "Имя кластера Managed MySQL"
+  type        = string
+  default     = "mysql-cluster"
+}
+
+variable "yc_mysql_db_name" {
+  description = "Имя базы данных в кластере MySQL"
+  type        = string
+  default     = "mydatabase"
+}
+
+variable "yc_mysql_user" {
+  description = "Имя пользователя для базы данных MySQL"
+  type        = string
+  default     = "dbuser"
+}
+
+variable "yc_mysql_password" {
+  description = "Пароль для пользователя базы данных MySQL"
+  type        = string
+  sensitive   = true
+  # ВАЖНО: Установите безопасный пароль! Можно использовать генератор паролей.
+  # Например, можно сгенерировать пароль и передать его через переменную окружения TF_VAR_yc_mysql_password
+  # или указать при выполнении terraform apply -var="yc_mysql_password=ВАШ_ПАРОЛЬ"
+  # Не храните пароли в открытом виде в коде для производственных сред.
+  default = "ComplexPassword123!" # ОБЯЗАТЕЛЬНО ИЗМЕНИТЕ ЭТОТ ПАРОЛЬ!
+}
+
+variable "yc_vm_image_id" {
+  description = "ID образа для виртуальных машин (например, Ubuntu 20.04 LTS)"
+  type        = string
+  # Вы можете найти актуальные ID образов здесь:
+  # https://cloud.yandex.ru/docs/compute/operations/images-with-preinstalled-software/get-list
+  # Пример для Ubuntu 20.04 LTS: fd8vmcue7913vnmj5grk (этот ID может устареть, проверьте актуальный)
+  default = "fd8vmcue7913vnmj5grk" # ОБЯЗАТЕЛЬНО ПРОВЕРЬТЕ И ОБНОВИТЕ ЭТОТ ID!
+}
+
+variable "yc_vm_subnet_id" {
+  description = "ID подсети для виртуальных машин и кластера MySQL"
+  type        = string
+  # Пример: e9b03k4n8c1q2q6k7b6g (замените на ваш актуальный ID подсети)
+  # Убедитесь, что эта подсеть находится в той же зоне, что и yc_zone
+  # default     = "ВАШ_SUBNET_ID" # <-- РАСКОММЕНТИРУЙТЕ И УКАЖИТЕ ВАШ SUBNET ID
+}
+
+variable "yc_vm_network_id" {
+  description = "ID сети для кластера MySQL"
+  type        = string
+  # Пример: enp1a2b3c4d5e6f7g8h (замените на ваш актуальный ID сети)
+  # default     = "ВАШ_NETWORK_ID" # <-- РАСКОММЕНТИРУЙТЕ И УКАЖИТЕ ВАШ NETWORK ID
+}
+
+# ------------------------------------------------------------------------------
+# РЕСУРСЫ ИНФРАСТРУКТУРЫ
+# ------------------------------------------------------------------------------
+
+# --- Виртуальная машина для CRM ---
+resource "yandex_compute_instance" "crm_vm" {
+  name        = var.yc_crm_instance_name
+  platform_id = "standard-v3" # Стандартная платформа Intel Ice Lake
+  zone        = var.yc_zone
+
+  resources {
+    cores  = 2          # Минимальное количество vCPU
+    memory = 2          # Минимальный объем RAM в ГБ
+    core_fraction = 20 # Гарантированная доля vCPU (20% = неполная загрузка, экономия)
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = var.yc_vm_image_id
+      size     = 10 # Минимальный размер диска в ГБ
+    }
+  }
+
+  network_interface {
+    subnet_id = var.yc_vm_subnet_id
+    nat       = true # Включить NAT для доступа в интернет (если требуется)
+  }
+
+  metadata = {
+    # ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}" # Раскомментируйте и укажите путь к вашему публичному SSH ключу
+    user-data = <<-EOF
+                #cloud-config
+                users:
+                  - name: yc-user # Имя пользователя для подключения по SSH
+                    groups: sudo
+                    shell: /bin/bash
+                    sudo: ['ALL=(ALL) NOPASSWD:ALL']
+                    ssh-authorized-keys:
+                      - # Вставьте сюда ваш публичный SSH ключ (например, содержимое ~/.ssh/id_rsa.pub)
+                        # ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQD... ваше_имя@хост
+                EOF
+  }
+
+  scheduling_policy {
+    preemptible = false # Для CRM лучше не использовать прерываемые ВМ
+  }
+}
+
+# --- Виртуальная машина для интернет-магазина ---
+resource "yandex_compute_instance" "shop_vm" {
+  name        = var.yc_shop_instance_name
+  platform_id = "standard-v3"
+  zone        = var.yc_zone
+
+  resources {
+    cores  = 2
+    memory = 2
+    core_fraction = 20
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = var.yc_vm_image_id
+      size     = 10
+    }
+  }
+
+  network_interface {
+    subnet_id = var.yc_vm_subnet_id
+    nat       = true
+  }
+
+  metadata = {
+    # ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}" # Раскомментируйте и укажите путь к вашему публичному SSH ключу
+    user-data = <<-EOF
+                #cloud-config
+                users:
+                  - name: yc-user # Имя пользователя для подключения по SSH
+                    groups: sudo
+                    shell: /bin/bash
+                    sudo: ['ALL=(ALL) NOPASSWD:ALL']
+                    ssh-authorized-keys:
+                      - # Вставьте сюда ваш публичный SSH ключ (например, содержимое ~/.ssh/id_rsa.pub)
+                        # ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQD... ваше_имя@хост
+                EOF
+  }
+
+  scheduling_policy {
+    preemptible = false # Для интернет-магазина лучше не использовать прерываемые ВM
+  }
+}
+
+# --- Managed база данных MySQL ---
+resource "yandex_mdb_mysql_cluster" "mysql_cluster" {
+  name        = var.yc_mysql_cluster_name
+  environment = "PRODUCTION" # Или "PRESTABLE" для тестовых сред
+  network_id  = var.yc_vm_network_id # Используйте тот же network_id, что и для ВМ
+
+  config {
+    version = "8.0" # Укажите желаемую версию MySQL
+    resources {
+      resource_preset_id = "s3.nano" # Минимальная конфигурация (1 vCPU, 1GB RAM, 10GB disk)
+                                     # Доступные preset_id: https://cloud.yandex.ru/docs/managed-mysql/concepts/instance-types
+      disk_type_id       = "network-ssd" # Тип диска
+      disk_size          = 10            # Размер диска в ГБ (минимальный)
+    }
+    mysql_config = {
+      # Здесь можно указать специфичные настройки MySQL, если требуется
+      # sql_mode = "STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION"
+    }
+  }
+
+  database {
+    name = var.yc_mysql_db_name
+  }
+
+  user {
+    name     = var.yc_mysql_user
+    password = var.yc_mysql_password
+    permission {
+      database_name = var.yc_mysql_db_name
+      roles         = ["ALL"] # Предоставить все права на указанную базу данных
+    }
+  }
+
+  host {
+    zone      = var.yc_zone
+    subnet_id = var.yc_vm_subnet_id
+  }
+
+  maintenance_window {
+    type = "ANYTIME" # Или "WEEKLY" для указания конкретного дня и времени
+  }
+
+  deletion_protection = false # Установите в true для производственных сред, чтобы предотвратить случайное удаление
+}
+
+# ------------------------------------------------------------------------------
+# ВЫВОДНЫЕ ДАННЫЕ (OUTPUTS)
+# ------------------------------------------------------------------------------
+
+output "crm_vm_external_ip" {
+  description = "Внешний IP-адрес виртуальной машины CRM"
+  value       = yandex_compute_instance.crm_vm.network_interface.0.nat_ip_address
+}
+
+output "shop_vm_external_ip" {
+  description = "Внешний IP-адрес виртуальной машины интернет-магазина"
+  value       = yandex_compute_instance.shop_vm.network_interface.0.nat_ip_address
+}
+
+output "mysql_cluster_fqdn" {
+  description = "FQDN хоста кластера MySQL (для подключения)"
+  value       = yandex_mdb_mysql_cluster.mysql_cluster.host.0.fqdn # Обычно это FQDN первого хоста
+}
+
+output "mysql_db_name" {
+  description = "Имя базы данных MySQL"
+  value       = var.yc_mysql_db_name
+}
+
+output "mysql_user_name" {
+  description = "Имя пользователя базы данных MySQL"
+  value       = var.yc_mysql_user
+}
+
+output "mysql_password_info" {
+  description = "Пароль для пользователя MySQL был установлен через переменную. Используйте его для подключения."
+  value       = "Пароль задан переменной yc_mysql_password. Он не будет выведен в целях безопасности."
+}
+
+output "ssh_user_for_vms" {
+  description = "Имя пользователя, созданного на ВМ для подключения по SSH (если используется user-data)"
+  value       = "yc-user (если раскомментирована и настроена секция user-data с SSH ключом)"
+}

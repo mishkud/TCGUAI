@@ -1,0 +1,203 @@
+terraform {
+  required_providers {
+    yandex = {
+      source = "yandex-cloud/yandex"
+    }
+  }
+  required_version = ">= 0.13"
+}
+
+provider "yandex" {
+  zone = "<зона_доступности_по_умолчанию>"
+}
+
+# Определение переменных
+variable "zone" {
+  description = "Зона доступности"
+  type        = string
+  default     = "ru-central1-a"
+}
+
+variable "subnet_name" {
+  description = "Имя подсети"
+  type        = string
+  default     = "default-subnet"
+}
+
+variable "subnet_cidr" {
+  description = "CIDR для подсети"
+  type        = string
+  default     = "192.168.10.0/24"
+}
+
+variable "vm_crm_name" {
+  description = "Имя ВМ для CRM"
+  type        = string
+  default     = "crm-server"
+}
+
+variable "vm_shop_name" {
+  description = "Имя ВМ для интернет-магазина"
+  type        = string
+  default     = "shop-server"
+}
+
+variable "mysql_name" {
+  description = "Имя кластера MySQL"
+  type        = string
+  default     = "mysql-cluster"
+}
+
+variable "db_name" {
+  description = "Имя базы данных"
+  type        = string
+  default     = "db1"
+}
+
+variable "db_user" {
+  description = "Имя пользователя базы данных"
+  type        = string
+  default     = "user1"
+}
+
+variable "db_password" {
+  description = "Пароль пользователя базы данных"
+  type        = string
+  default     = "Change-Me-123456"
+  sensitive   = true
+}
+
+# Создание сети
+resource "yandex_vpc_network" "network" {
+  name = "network1"
+}
+
+# Создание подсети
+resource "yandex_vpc_subnet" "subnet" {
+  name           = var.subnet_name
+  zone           = var.zone
+  network_id     = yandex_vpc_network.network.id
+  v4_cidr_blocks = [var.subnet_cidr]
+}
+
+# Виртуальная машина для CRM
+resource "yandex_compute_instance" "vm_crm" {
+  name        = var.vm_crm_name
+  platform_id = "standard-v1"
+  zone        = var.zone
+
+  resources {
+    cores  = 2
+    memory = 4
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = "fd80mrhj8fl2oe87o4e1" # Ubuntu 20.04 LTS
+      size     = 20
+    }
+  }
+
+  network_interface {
+    subnet_id = yandex_vpc_subnet.subnet.id
+    nat       = true
+  }
+
+  metadata = {
+    ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"  # Путь к публичному SSH-ключу
+  }
+}
+
+# Виртуальная машина для интернет-магазина
+resource "yandex_compute_instance" "vm_shop" {
+  name        = var.vm_shop_name
+  platform_id = "standard-v1"
+  zone        = var.zone
+
+  resources {
+    cores  = 2
+    memory = 4
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = "fd80mrhj8fl2oe87o4e1" # Ubuntu 20.04 LTS
+      size     = 20
+    }
+  }
+
+  network_interface {
+    subnet_id = yandex_vpc_subnet.subnet.id
+    nat       = true
+  }
+
+  metadata = {
+    ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"  # Путь к публичному SSH-ключу
+  }
+}
+
+# Создание кластера MySQL
+resource "yandex_mdb_mysql_cluster" "mysql_cluster" {
+  name                = var.mysql_name
+  environment         = "PRODUCTION"
+  network_id          = yandex_vpc_network.network.id
+  version             = "8.0"
+  security_group_ids  = []
+  deletion_protection = false
+
+  resources {
+    resource_preset_id = "b1.medium" # 2 vCPU, 8 GB RAM
+    disk_type_id       = "network-ssd"
+    disk_size          = 20
+  }
+
+  host {
+    zone             = var.zone
+    subnet_id        = yandex_vpc_subnet.subnet.id
+    assign_public_ip = true
+  }
+}
+
+# Создание базы данных в кластере MySQL
+resource "yandex_mdb_mysql_database" "database" {
+  cluster_id = yandex_mdb_mysql_cluster.mysql_cluster.id
+  name       = var.db_name
+}
+
+# Создание пользователя в кластере MySQL
+resource "yandex_mdb_mysql_user" "user" {
+  cluster_id = yandex_mdb_mysql_cluster.mysql_cluster.id
+  name       = var.db_user
+  password   = var.db_password
+  
+  permission {
+    database_name = yandex_mdb_mysql_database.database.name
+    roles         = ["ALL"]
+  }
+}
+
+# Вывод публичных IP-адресов виртуальных машин
+output "crm_server_public_ip" {
+  value = yandex_compute_instance.vm_crm.network_interface.0.nat_ip_address
+}
+
+output "shop_server_public_ip" {
+  value = yandex_compute_instance.vm_shop.network_interface.0.nat_ip_address
+}
+
+# Вывод информации для подключения к MySQL
+output "mysql_host" {
+  value = yandex_mdb_mysql_cluster.mysql_cluster.host.0.fqdn
+}
+
+output "mysql_port" {
+  value = 3306
+}
+
+output "mysql_user" {
+  value = var.db_user
+}
+
+output "mysql_database" {
+  value = var.db_name
+}

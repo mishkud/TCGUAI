@@ -1,0 +1,98 @@
+terraform {
+  required_providers {
+    yandex = {
+      source = "yandex-cloud/yandex"
+    }
+  }
+  required_version = ">= 0.13"
+}
+
+provider "yandex" {
+  zone = "<зона_доступности_по_умолчанию>"
+}
+# Файл main.tf
+
+variable "zone" {
+  description = "Выберите зону доступности, например ru-central1-a."
+}
+
+variable "subnet_id_crm_vm" {
+  description = "ID подсети для виртуальной машины CRM."
+}
+
+variable "subnet_id_shop_vm" {
+  description = "ID подсети для виртуальной машины интернет-магазина."
+}
+
+variable "mysql_subnet_ids" {
+  type        = list(string)
+  description = "Список ID подсетей для базы данных MySQL."
+}
+
+resource "yandex_compute_instance" "crm_vm" {
+  name                  = "crm-instance"
+  platform_id           = "standard-v3"
+  zone                  = var.zone
+  resources {
+    cores  = 2
+    memory = 4
+  }
+  boot_disk {
+    initialize_params {
+      image_id = "fd87psqtrnfnie4vnttm" # CentOS 7 Image ID from Yandex Marketplace
+    }
+  }
+  network_interface {
+    subnet_id     = var.subnet_id_crm_vm
+    nat           = true
+  }
+}
+
+resource "yandex_compute_instance" "shop_vm" {
+  name                  = "shop-instance"
+  platform_id           = "standard-v3"
+  zone                  = var.zone
+  resources {
+    cores  = 2
+    memory = 4
+  }
+  boot_disk {
+    initialize_params {
+      image_id = "fd87psqtrnfnie4vnttm" # CentOS 7 Image ID from Yandex Marketplace
+    }
+  }
+  network_interface {
+    subnet_id     = var.subnet_id_shop_vm
+    nat           = true
+  }
+}
+
+resource "yandex_mdb_mysql_cluster" "mysql_db" {
+  name                = "managed-mysql-cluster"
+  environment         = "PRODUCTION"
+  version              = "8_0"
+  allocated_storage   = 10
+  host {
+    zone            = var.zone
+    subnet_id       = element(var.mysql_subnet_ids, 0)
+    assign_public_ip = false
+  }
+  resources {
+    resource_preset_id = "s2.micro"
+    disk_type_id       = "network-hdd"
+    disk_size          = 10
+  }
+  database {
+    name = "crm_database"
+  }
+  user {
+    name     = "crm_user"
+    password = random_password.db_pass.result
+  }
+}
+
+resource "random_password" "db_pass" {
+  length           = 16
+  special          = true
+  override_special = "_%@"
+}

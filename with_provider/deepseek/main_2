@@ -1,0 +1,179 @@
+terraform {
+  required_providers {
+    yandex = {
+      source = "yandex-cloud/yandex"
+    }
+  }
+}
+
+provider "yandex" {
+  # Пользователь должен указать либо токен, либо путь к файлу с ключами сервисного аккаунта
+  # token     = "OAuth_token"  # Раскомментировать и указать OAuth-токен
+  # service_account_key_file = "key.json"  # Или указать путь к файлу ключа сервисного аккаунта
+  cloud_id  = "ваш_cloud_id"  # Заменить на ваш cloud_id
+  folder_id = "ваш_folder_id" # Заменить на ваш folder_id
+  zone      = "ru-central1-a" # Можно изменить на другую зону
+}
+
+# Создание сети и подсети
+resource "yandex_vpc_network" "default" {
+  name = "crm-shop-network"
+}
+
+resource "yandex_vpc_subnet" "default" {
+  name           = "crm-shop-subnet"
+  zone           = "ru-central1-a"
+  network_id     = yandex_vpc_network.default.id
+  v4_cidr_blocks = ["192.168.10.0/24"]
+}
+
+# Группа безопасности для ВМ
+resource "yandex_vpc_security_group" "vm_sg" {
+  name        = "vm-security-group"
+  network_id  = yandex_vpc_network.default.id
+
+  ingress {
+    protocol       = "TCP"
+    port           = 80
+    v4_cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    protocol       = "TCP"
+    port           = 443
+    v4_cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    protocol       = "TCP"
+    port           = 22
+    v4_cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    protocol       = "ANY"
+    from_port      = 0
+    to_port        = 65535
+    v4_cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+# Группа безопасности для Managed MySQL
+resource "yandex_vpc_security_group" "mysql_sg" {
+  name        = "mysql-security-group"
+  network_id  = yandex_vpc_network.default.id
+
+  ingress {
+    protocol          = "TCP"
+    port              = 3306
+    security_group_id = yandex_vpc_security_group.vm_sg.id
+  }
+}
+
+# Managed MySQL кластер
+resource "yandex_mdb_mysql_cluster" "crm_db" {
+  name        = "crm-mysql-cluster"
+  environment = "PRODUCTION"
+  network_id  = yandex_vpc_network.default.id
+  version     = "8.0"
+
+  resources {
+    resource_preset_id = "s2.micro" # Минимальная конфигурация
+    disk_type_id      = "network-ssd"
+    disk_size         = 10 # ГБ
+  }
+
+  host {
+    zone      = "ru-central1-a"
+    subnet_id = yandex_vpc_subnet.default.id
+  }
+
+  security_group_ids = [yandex_vpc_security_group.mysql_sg.id]
+}
+
+# Пользователь БД
+resource "yandex_mdb_mysql_user" "crm_user" {
+  cluster_id = yandex_mdb_mysql_cluster.crm_db.id
+  name       = "crm_user"
+  password   = "secure_password_123" # В реальном проекте использовать переменные или secrets
+  permission {
+    database_name = "crm_db"
+    roles        = ["ALL"]
+  }
+}
+
+# База данных
+resource "yandex_mdb_mysql_database" "crm_db" {
+  cluster_id = yandex_mdb_mysql_cluster.crm_db.id
+  name       = "crm_db"
+}
+
+# ВМ для CRM
+resource "yandex_compute_instance" "crm_vm" {
+  name        = "crm-vm"
+  platform_id = "standard-v3"
+  zone        = "ru-central1-a"
+
+  resources {
+    cores  = 2
+    memory = 2
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = "fd827b91d99psvq5fjit" # Ubuntu 20.04 LTS
+      size     = 10
+    }
+  }
+
+  network_interface {
+    subnet_id = yandex_vpc_subnet.default.id
+    nat       = true
+    security_group_ids = [yandex_vpc_security_group.vm_sg.id]
+  }
+
+  metadata = {
+    ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}" # Указать путь к публичному SSH-ключу
+  }
+}
+
+# ВМ для интернет-магазина
+resource "yandex_compute_instance" "shop_vm" {
+  name        = "shop-vm"
+  platform_id = "standard-v3"
+  zone        = "ru-central1-a"
+
+  resources {
+    cores  = 2
+    memory = 2
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = "fd827b91d99psvq5fjit" # Ubuntu 20.04 LTS
+      size     = 10
+    }
+  }
+
+  network_interface {
+    subnet_id = yandex_vpc_subnet.default.id
+    nat       = true
+    security_group_ids = [yandex_vpc_security_group.vm_sg.id]
+  }
+
+  metadata = {
+    ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}" # Указать путь к публичному SSH-ключу
+  }
+}
+
+output "crm_vm_public_ip" {
+  value = yandex_compute_instance.crm_vm.network_interface.0.nat_ip_address
+}
+
+output "shop_vm_public_ip" {
+  value = yandex_compute_instance.shop_vm.network_interface.0.nat_ip_address
+}
+
+output "mysql_host" {
+  value = yandex_mdb_mysql_cluster.crm_db.host.0.fqdn
+}

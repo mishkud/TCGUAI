@@ -1,0 +1,136 @@
+# Настройка провайдера YC
+provider "yandex" {
+  token     = var.yc_token # ваш токен API YC
+  cloud_id  = var.cloud_id # ID вашего облачного аккаунта
+  folder_id = var.folder_id # ID папки проекта
+}
+
+# Создаем виртуальную сеть и подсеть
+resource "yandex_vpc_network" "crm-network" {}
+
+resource "yandex_vpc_subnet" "crm-subnet" {
+  zone      = "ru-central1-a"
+  network_id = yandex_vpc_network.crm-network.id
+  v4_cidr_blocks = ["10.1.1.0/24"]
+}
+
+# Создаем управляемый экземпляр базы данных MySQL
+resource "yandex_mdb_mysql_cluster" "mysql-cluster" {
+  name   = "mysql-crm"
+  environment = "PRODUCTION"
+  version = "8_0"
+  
+  network_id = yandex_vpc_network.crm-network.id
+
+  resources {
+    resource_preset_id = "s2.micro"
+    disk_type_id       = "network-hdd"
+    disk_size          = 10
+  }
+
+  host {
+    subnet_id           = yandex_vpc_subnet.crm-subnet.id
+    assign_public_ip    = true
+  }
+
+  database {
+    name = "crm_db"
+  }
+
+  user {
+    name     = "admin"
+    password = var.mysql_password
+  }
+}
+
+# Развертываем виртуальные машины
+locals {
+  crm_vm_image_family = "ubuntu-2204-lts"
+  shop_vm_image_family = "ubuntu-2204-lts"
+}
+
+resource "yandex_compute_instance_group" "crm-instance-group" {
+  name_prefix            = "crm-server-"
+  description            = "CRM server instance group"
+  service_account_id     = data.yandex_iam_service_account.default.id
+  instance_template {
+    platform_id              = "standard-v3"
+    boot_disk {
+      initialize_params {
+        image_family = local.crm_vm_image_family
+      }
+    }
+    resources {
+      cores                 = 2
+      memory                = 4
+    }
+    scheduling_policy {
+      preemptible           = false
+    }
+    network_interface {
+      subnet_ids            = [yandex_vpc_subnet.crm-subnet.id]
+      nat                   = true
+    }
+  }
+  scale_policy {
+    fixed_scale {
+      size                  = 1
+    }
+  }
+  load_balancer_target_groups {
+    target_group_ids        = []
+  }
+  deploy_policy {
+    max_expand_duration     = "PT1H"
+    max_unavailable         = 1
+  }
+}
+
+resource "yandex_compute_instance_group" "shop-instance-group" {
+  name_prefix            = "shop-server-"
+  description            = "Shop server instance group"
+  service_account_id     = data.yandex_iam_service_account.default.id
+  instance_template {
+    platform_id              = "standard-v3"
+    boot_disk {
+      initialize_params {
+        image_family = local.shop_vm_image_family
+      }
+    }
+    resources {
+      cores                 = 2
+      memory                = 4
+    }
+    scheduling_policy {
+      preemptible           = false
+    }
+    network_interface {
+      subnet_ids            = [yandex_vpc_subnet.crm-subnet.id]
+      nat                   = true
+    }
+  }
+  scale_policy {
+    fixed_scale {
+      size                  = 1
+    }
+  }
+  load_balancer_target_groups {
+    target_group_ids        = []
+  }
+  deploy_policy {
+    max_expand_duration     = "PT1H"
+    max_unavailable         = 1
+  }
+}
+
+data "yandex_iam_service_account" "default" {
+  name = "default-service-account"
+}
+
+output "crm_server_ip" {
+  value = yanzdex_compute_instance_group.crm-instance-group.instances.0.network_interfaces.0.ip_address
+}
+
+output "shop_server_ip" {
+  value = yanzdex_compute_instance_group.shop-instance-group.instances.0.network_interfaces.0.ip_address
+}

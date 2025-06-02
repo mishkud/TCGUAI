@@ -1,0 +1,143 @@
+provider "yandex" {
+  cloud_id  = var.cloud_id
+  folder_id = var.folder_id
+  zone      = "ru-central1-a"
+}
+
+resource "yandex_vpc_network" "default" {
+  name = "default-network"
+}
+
+resource "yandex_vpc_subnet" "default" {
+  name           = "default-subnet"
+  zone           = "ru-central1-a"
+  network_id     = yandex_vpc_network.default.id
+  v4_cidr_blocks = ["10.0.0.0/24"]
+}
+
+resource "yandex_compute_instance" "crm_vm" {
+  name        = "crm-vm"
+  platform_id = "standard-v1"
+  zone        = "ru-central1-a"
+
+  resources {
+    cores         = 2
+    memory        = 2
+    core_fraction = 20
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = data.yandex_compute_image.ubuntu.id
+      size     = 10
+    }
+  }
+
+  network_interface {
+    subnet_id = yandex_vpc_subnet.default.id
+    nat       = true
+  }
+
+  metadata = {
+    ssh-keys = "ubuntu:${var.ssh_key}"
+  }
+}
+
+resource "yandex_compute_instance" "shop_vm" {
+  name        = "shop-vm"
+  platform_id = "standard-v1"
+  zone        = "ru-central1-a"
+
+  resources {
+    cores         = 2
+    memory        = 2
+    core_fraction = 20
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = data.yandex_compute_image.ubuntu.id
+      size     = 10
+    }
+  }
+
+  network_interface {
+    subnet_id = yandex_vpc_subnet.default.id
+    nat       = true
+  }
+
+  metadata = {
+    ssh-keys = "ubuntu:${var.ssh_key}"
+  }
+}
+
+data "yandex_compute_image" "ubuntu" {
+  family = "ubuntu-2204-lts"
+}
+
+resource "yandex_mdb_mysql_cluster" "mysql_cluster" {
+  name        = "mysql-cluster"
+  environment = "PRESTABLE"
+  network_id  = yandex_vpc_network.default.id
+
+  config {
+    version = "8.0"
+    resources {
+      resource_preset_id = "s2.micro"
+      disk_type_id       = "network-hdd"
+      disk_size          = 10
+    }
+  }
+
+  host {
+    zone      = "ru-central1-a"
+    subnet_id = yandex_vpc_subnet.default.id
+  }
+
+  database {
+    name = "appdb"
+  }
+
+  user {
+    name     = "appuser"
+    password = var.db_password
+    permission {
+      database_name = "appdb"
+      roles         = ["ALL"]
+    }
+  }
+}
+
+variable "cloud_id" {
+  description = "Yandex Cloud ID"
+  type        = string
+}
+
+variable "folder_id" {
+  description = "Yandex Folder ID"
+  type        = string
+}
+
+variable "ssh_key" {
+  description = "Your SSH public key (e.g., from ~/.ssh/id_rsa.pub)"
+  type        = string
+}
+
+variable "db_password" {
+  description = "Password for MySQL user 'appuser'"
+  type        = string
+  sensitive   = true
+}
+
+output "crm_vm_ip" {
+  value = yandex_compute_instance.crm_vm.network_interface.0.nat_ip_address
+}
+
+output "shop_vm_ip" {
+  value = yandex_compute_instance.shop_vm.network_interface.0.nat_ip_address
+}
+
+output "mysql_host" {
+  value = yandex_mdb_mysql_cluster.mysql_cluster.host.0.fqdn
+}
+
