@@ -1,0 +1,55 @@
+main_1
+
+Error: Unclosed configuration block
+
+  on main_1.tf line 150, in output "crm_public_ip":
+ 150: output "crm_public_ip" {
+
+There is no closing brace for this block before the end of the file. This may
+be caused by incorrect brace nesting elsewhere in this file.
+main_2
+
+Error: Missing required argument
+
+  on main_2.tf line 19, in resource "yandex_vpc_subnet" "main":
+  19: resource "yandex_vpc_subnet" "main" {
+
+The argument "v4_cidr_blocks" is required, but no definition was found.
+
+Error: Unsupported argument
+
+  on main_2.tf line 23, in resource "yandex_vpc_subnet" "main":
+  23:   ipv4_range     = "10.1.0.0/24"
+
+An argument named "ipv4_range" is not expected here.
+
+Error: Missing required argument
+
+  on main_2.tf line 27, in resource "yandex_vpc_security_group" "default":
+  27: resource "yandex_vpc_security_group" "default" {
+
+The argument "network_id" is required, but no definition was found.
+
+Error: Unsupported block type
+
+  on main_2.tf line 30, in resource "yandex_vpc_security_group" "default":
+  30:   rule {
+
+Blocks of type "rule" are not expected here.
+
+Error: Reference to undeclared input variable
+
+  on main_2.tf line 116, in resource "yandex_mdb_mysql_cluster" "mysql":
+ 116:   folder_id      = var.folder_id
+
+An input variable with the name "folder_id" has not been declared. This
+variable can be declared with a variable "folder_id" {} block.
+main_3
+
+Error: Unclosed configuration block
+
+  on main_3.tf line 147, in output "crm_public_ip":
+ 147: output "crm_public_ip" {
+
+There is no closing brace for this block before the end of the file. This may
+be caused by incorrect brace nesting elsewhere in this file.

@@ -1,0 +1,175 @@
+terraform {
+  required_providers {
+    yandex = {
+      source = "yandex-cloud/yandex"
+    }
+  }
+  required_version = ">= 0.13"
+}
+
+provider "yandex" {
+  zone = "<зона_доступности_по_умолчанию>"
+}
+
+# main.tf
+
+################################################################################
+# Networking
+################################################################################
+
+resource "yandex_vpc_network" "app_network" {
+  name = "app-network"
+}
+
+resource "yandex_vpc_subnet" "app_subnet" {
+  name           = "app-subnet"
+  zone           = "ru-central1-a"
+  network_id     = yandex_vpc_network.app_network.id
+  v4_cidr_blocks = ["192.168.10.0/24"]
+}
+
+################################################################################
+# Security Groups
+################################################################################
+
+resource "yandex_vpc_security_group" "app_sg" {
+  name       = "app-sg"
+  network_id = yandex_vpc_network.app_network.id
+
+  # Allow SSH access from any IP
+  ingress {
+    protocol       = "TCP"
+    port           = 22
+    v4_cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # Allow all internal traffic within the security group
+  ingress {
+    protocol          = "ANY"
+    predefined_target = "self_security_group"
+  }
+
+  # Allow all outgoing traffic
+  egress {
+    protocol       = "ANY"
+    v4_cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+################################################################################
+# Virtual Machines
+################################################################################
+
+data "yandex_compute_image" "ubuntu_2204" {
+  family = "ubuntu-2204-lts"
+}
+
+# CRM Server VM
+resource "yandex_compute_instance" "crm_server" {
+  name        = "crm-server"
+  platform_id = "standard-v2"
+  zone        = "ru-central1-a"
+
+  resources {
+    cores  = 2
+    memory = 2
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = data.yandex_compute_image.ubuntu_2204.id
+      size     = 20
+    }
+  }
+
+  network_interface {
+    subnet_id          = yandex_vpc_subnet.app_subnet.id
+    nat                = true
+    security_group_ids = [yandex_vpc_security_group.app_sg.id]
+  }
+
+  metadata = {
+    ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"
+  }
+}
+
+# E-commerce Store VM
+resource "yandex_compute_instance" "ecommerce_store" {
+  name        = "ecommerce-store"
+  platform_id = "standard-v2"
+  zone        = "ru-central1-a"
+
+  resources {
+    cores  = 2
+    memory = 2
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = data.yandex_compute_image.ubuntu_2204.id
+      size     = 20
+    }
+  }
+
+  network_interface {
+    subnet_id          = yandex_vpc_subnet.app_subnet.id
+    nat                = true
+    security_group_ids = [yandex_vpc_security_group.app_sg.id]
+  }
+
+  metadata = {
+    ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"
+  }
+}
+
+################################################################################
+# Managed MySQL
+################################################################################
+
+resource "yandex_mdb_mysql_cluster" "app_mysql" {
+  name                = "app-mysql-cluster"
+  environment         = "PRODUCTION"
+  network_id          = yandex_vpc_network.app_network.id
+  version             = "8.0"
+  security_group_ids  = [yandex_vpc_security_group.app_sg.id]
+
+  resources {
+    resource_preset_id = "s2.medium" # Corresponds to 2 cores, 8GB RAM
+    disk_type_id       = "network-ssd"
+    disk_size          = 20
+  }
+
+  host {
+    zone      = "ru-central1-a"
+    subnet_id = yandex_vpc_subnet.app_subnet.id
+  }
+
+  database {
+    name = "appdb"
+  }
+
+  user {
+    name     = "appuser"
+    password = "your_strong_password" # Change this to a secure password
+    permission {
+      database_name = "appdb"
+      roles         = ["ALL"]
+    }
+  }
+}
+
+################################################################################
+# Outputs
+################################################################################
+
+output "crm_server_public_ip" {
+  value = yandex_compute_instance.crm_server.network_interface.0.nat_ip_address
+}
+
+output "ecommerce_store_public_ip" {
+  value = yandex_compute_instance.ecommerce_store.network_interface.0.nat_ip_address
+}
+
+output "mysql_fqdn" {
+  value = yandex_mdb_mysql_cluster.app_mysql.host.0.fqdn
+}
