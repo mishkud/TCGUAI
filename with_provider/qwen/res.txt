@@ -1,0 +1,24 @@
+main_1
+
+Error: Missing required provider
+
+This configuration requires provider registry.terraform.io/hashicorp/yandex,
+but that provider isn't available. You may be able to install it
+automatically by running:
+  terraform init
+main_2
+
+Error: Missing required provider
+
+This configuration requires provider registry.terraform.io/hashicorp/yandex,
+but that provider isn't available. You may be able to install it
+automatically by running:
+  terraform init
+main_3
+
+Error: Missing required provider
+
+This configuration requires provider registry.terraform.io/hashicorp/yandex,
+but that provider isn't available. You may be able to install it
+automatically by running:
+  terraform init

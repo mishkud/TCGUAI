@@ -1,0 +1,132 @@
+main_1
+
+Warning: Argument is deprecated
+
+  with yandex_mdb_mysql_cluster.mysql_cluster,
+  on main_1.tf line 163, in resource "yandex_mdb_mysql_cluster" "mysql_cluster":
+ 163: resource "yandex_mdb_mysql_cluster" "mysql_cluster" {
+
+to manage users, please switch to using a separate resource type
+yandex_mdb_mysql_user
+
+(and one more similar warning elsewhere)
+
+Warning: default_authentication_plugin
+
+  with yandex_mdb_mysql_cluster.mysql_cluster,
+  on main_1.tf line 175, in resource "yandex_mdb_mysql_cluster" "mysql_cluster":
+ 175:   mysql_config = {
+ 176:     sql_mode                      = "ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION"
+ 177:     max_connections               = 100
+ 178:     default_authentication_plugin = "mysql_native_password"
+ 179:   }
+
+
+Warning: sql_mode
+
+  with yandex_mdb_mysql_cluster.mysql_cluster,
+  on main_1.tf line 175, in resource "yandex_mdb_mysql_cluster" "mysql_cluster":
+ 175:   mysql_config = {
+ 176:     sql_mode                      = "ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION"
+ 177:     max_connections               = 100
+ 178:     default_authentication_plugin = "mysql_native_password"
+ 179:   }
+
+
+Error: Invalid function argument
+
+  on main_1.tf line 119, in resource "yandex_compute_instance" "crm_vm":
+ 119:     ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"
+    ├────────────────
+    │ while calling file(path)
+
+Invalid value for "path" parameter: no file exists at "~/.ssh/id_rsa.pub";
+this function works only with files that are distributed as part of the
+configuration source code, so if this file will be created by a resource in
+this configuration you must instead obtain this result from an attribute of
+that resource.
+
+Error: Invalid function argument
+
+  on main_1.tf line 120, in resource "yandex_compute_instance" "crm_vm":
+ 120:     user-data = "#cloud-config\nusers:\n  - name: ubuntu\n    groups: sudo\n    shell: /bin/bash\n    sudo: ['ALL=(ALL) NOPASSWD:ALL']\n    ssh-authorized-keys:\n      - ${file("~/.ssh/id_rsa.pub")}"
+    ├────────────────
+    │ while calling file(path)
+
+Invalid value for "path" parameter: no file exists at "~/.ssh/id_rsa.pub";
+this function works only with files that are distributed as part of the
+configuration source code, so if this file will be created by a resource in
+this configuration you must instead obtain this result from an attribute of
+that resource.
+
+Error: Invalid function argument
+
+  on main_1.tf line 153, in resource "yandex_compute_instance" "shop_vm":
+ 153:     ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"
+    ├────────────────
+    │ while calling file(path)
+
+Invalid value for "path" parameter: no file exists at "~/.ssh/id_rsa.pub";
+this function works only with files that are distributed as part of the
+configuration source code, so if this file will be created by a resource in
+this configuration you must instead obtain this result from an attribute of
+that resource.
+
+Error: Invalid function argument
+
+  on main_1.tf line 154, in resource "yandex_compute_instance" "shop_vm":
+ 154:     user-data = "#cloud-config\nusers:\n  - name: ubuntu\n    groups: sudo\n    shell: /bin/bash\n    sudo: ['ALL=(ALL) NOPASSWD:ALL']\n    ssh-authorized-keys:\n      - ${file("~/.ssh/id_rsa.pub")}"
+    ├────────────────
+    │ while calling file(path)
+
+Invalid value for "path" parameter: no file exists at "~/.ssh/id_rsa.pub";
+this function works only with files that are distributed as part of the
+configuration source code, so if this file will be created by a resource in
+this configuration you must instead obtain this result from an attribute of
+that resource.
+
+Error: Check Fail key mysql_config.default_authentication_plugin value: mysql_native_password err: Value mysql_native_password is not in enum
+
+  with yandex_mdb_mysql_cluster.mysql_cluster,
+  on main_1.tf line 175, in resource "yandex_mdb_mysql_cluster" "mysql_cluster":
+ 175:   mysql_config = {
+ 176:     sql_mode                      = "ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION"
+ 177:     max_connections               = 100
+ 178:     default_authentication_plugin = "mysql_native_password"
+ 179:   }
+
+
+Error: Check Fail key mysql_config.sql_mode value: ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION err: Value NO_AUTO_CREATE_USER is not in enum
+
+  with yandex_mdb_mysql_cluster.mysql_cluster,
+  on main_1.tf line 175, in resource "yandex_mdb_mysql_cluster" "mysql_cluster":
+ 175:   mysql_config = {
+ 176:     sql_mode                      = "ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION"
+ 177:     max_connections               = 100
+ 178:     default_authentication_plugin = "mysql_native_password"
+ 179:   }
+
+main_2
+
+Warning: Argument is deprecated
+
+  with yandex_mdb_mysql_cluster.mysql,
+  on main_2.tf line 218, in resource "yandex_mdb_mysql_cluster" "mysql":
+ 218: resource "yandex_mdb_mysql_cluster" "mysql" {
+
+to manage users, please switch to using a separate resource type
+yandex_mdb_mysql_user
+
+(and one more similar warning elsewhere)
+Success! The configuration is valid, but there were some validation warnings
+as shown above.
+
+main_3
+
+Error: Invalid data source
+
+  on main_3.tf line 18, in data "yandex_compute_zones" "available":
+  18: data "yandex_compute_zones" "available" {}
+
+The provider yandex-cloud/yandex does not support data source
+"yandex_compute_zones".
