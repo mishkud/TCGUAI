@@ -1,0 +1,91 @@
+main_1
+
+Error: Missing required argument
+
+  on main_1.tf line 107, in resource "yandex_mdb_mysql_cluster" "mysql":
+ 107: resource "yandex_mdb_mysql_cluster" "mysql" {
+
+The argument "version" is required, but no definition was found.
+
+Error: Insufficient resources blocks
+
+  on main_1.tf line 107, in resource "yandex_mdb_mysql_cluster" "mysql":
+ 107: resource "yandex_mdb_mysql_cluster" "mysql" {
+
+At least 1 "resources" blocks are required.
+
+Error: Unsupported block type
+
+  on main_1.tf line 112, in resource "yandex_mdb_mysql_cluster" "mysql":
+ 112:   config {
+
+Blocks of type "config" are not expected here.
+main_2
+
+Error: Missing required argument
+
+  on main_2.tf line 47, in resource "yandex_compute_instance" "crm":
+  47:   network_interface {
+
+The argument "subnet_id" is required, but no definition was found.
+
+Error: Unsupported argument
+
+  on main_2.tf line 48, in resource "yandex_compute_instance" "crm":
+  48:     subnet_name = var.subnet_name
+
+An argument named "subnet_name" is not expected here.
+
+Error: Missing required argument
+
+  on main_2.tf line 74, in resource "yandex_compute_instance" "shop":
+  74:   network_interface {
+
+The argument "subnet_id" is required, but no definition was found.
+
+Error: Unsupported argument
+
+  on main_2.tf line 75, in resource "yandex_compute_instance" "shop":
+  75:     subnet_name = var.subnet_name
+
+An argument named "subnet_name" is not expected here.
+
+Error: Missing required argument
+
+  on main_2.tf line 84, in resource "yandex_mdb_mysql_cluster" "mysql":
+  84: resource "yandex_mdb_mysql_cluster" "mysql" {
+
+The argument "version" is required, but no definition was found.
+
+Error: Insufficient resources blocks
+
+  on main_2.tf line 84, in resource "yandex_mdb_mysql_cluster" "mysql":
+  84: resource "yandex_mdb_mysql_cluster" "mysql" {
+
+At least 1 "resources" blocks are required.
+
+Error: Unsupported block type
+
+  on main_2.tf line 89, in resource "yandex_mdb_mysql_cluster" "mysql":
+  89:   config {
+
+Blocks of type "config" are not expected here.
+main_3
+
+Error: Value for unconfigurable attribute
+
+  with data.yandex_vpc_subnet.default,
+  on main_3.tf line 34, in data "yandex_vpc_subnet" "default":
+  34:   network_id = data.yandex_vpc_network.default.id
+
+Can't configure a value for "network_id": its value will be decided
+automatically based on the result of applying this configuration.
+
+Error: Value for unconfigurable attribute
+
+  with data.yandex_vpc_subnet.default,
+  on main_3.tf line 35, in data "yandex_vpc_subnet" "default":
+  35:   zone       = each.key
+
+Can't configure a value for "zone": its value will be decided automatically
+based on the result of applying this configuration.

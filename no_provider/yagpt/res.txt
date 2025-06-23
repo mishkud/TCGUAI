@@ -1,0 +1,126 @@
+main_1
+
+Error: Missing required argument
+
+  on main_1.tf line 20, in resource "yandex_vpc_subnet" "main_subnet":
+  20: resource "yandex_vpc_subnet" "main_subnet" {
+
+The argument "v4_cidr_blocks" is required, but no definition was found.
+
+Error: Unsupported argument
+
+  on main_1.tf line 24, in resource "yandex_vpc_subnet" "main_subnet":
+  24:   ipv4_cidr_block = "10.1.0.0/24"
+
+An argument named "ipv4_cidr_block" is not expected here.
+
+Error: Missing required argument
+
+  on main_1.tf line 76, in resource "yandex_mdb_mysql_cluster" "mysql_cluster":
+  76: resource "yandex_mdb_mysql_cluster" "mysql_cluster" {
+
+The argument "version" is required, but no definition was found.
+
+Error: Insufficient resources blocks
+
+  on main_1.tf line 76, in resource "yandex_mdb_mysql_cluster" "mysql_cluster":
+  76: resource "yandex_mdb_mysql_cluster" "mysql_cluster" {
+
+At least 1 "resources" blocks are required.
+
+Error: Unsupported block type
+
+  on main_1.tf line 81, in resource "yandex_mdb_mysql_cluster" "mysql_cluster":
+  81:   config_spec {
+
+Blocks of type "config_spec" are not expected here.
+
+Error: Invalid resource type
+
+  on main_1.tf line 103, in resource "yandex_vpc_security_list" "mysql_security":
+ 103: resource "yandex_vpc_security_list" "mysql_security" {
+
+The provider yandex-cloud/yandex does not support resource type
+"yandex_vpc_security_list".
+
+Error: Invalid resource type
+
+  on main_1.tf line 117, in resource "yandex_vpc_security_list" "vm_security":
+ 117: resource "yandex_vpc_security_list" "vm_security" {
+
+The provider yandex-cloud/yandex does not support resource type
+"yandex_vpc_security_list".
+main_2
+
+Error: Missing required argument
+
+  on main_2.tf line 76, in resource "yandex_mdb_mysql_cluster" "mysql_cluster":
+  76: resource "yandex_mdb_mysql_cluster" "mysql_cluster" {
+
+The argument "version" is required, but no definition was found.
+
+Error: Insufficient resources blocks
+
+  on main_2.tf line 76, in resource "yandex_mdb_mysql_cluster" "mysql_cluster":
+  76: resource "yandex_mdb_mysql_cluster" "mysql_cluster" {
+
+At least 1 "resources" blocks are required.
+
+Error: Unsupported block type
+
+  on main_2.tf line 81, in resource "yandex_mdb_mysql_cluster" "mysql_cluster":
+  81:   config_spec {
+
+Blocks of type "config_spec" are not expected here.
+
+Error: Unsupported argument
+
+  on main_2.tf line 94, in resource "yandex_mdb_mysql_cluster" "mysql_cluster":
+  94:     role     = "mdb_mysql.superuser"
+
+An argument named "role" is not expected here.
+
+Error: Invalid resource type
+
+  on main_2.tf line 103, in resource "yandex_vpc_security_list" "mysql_security_list":
+ 103: resource "yandex_vpc_security_list" "mysql_security_list" {
+
+The provider yandex-cloud/yandex does not support resource type
+"yandex_vpc_security_list".
+main_3
+
+Error: Missing required argument
+
+  on main_3.tf line 20, in resource "yandex_vpc_subnet" "main_subnet":
+  20: resource "yandex_vpc_subnet" "main_subnet" {
+
+The argument "v4_cidr_blocks" is required, but no definition was found.
+
+Error: Unsupported argument
+
+  on main_3.tf line 24, in resource "yandex_vpc_subnet" "main_subnet":
+  24:   ipv4_range = "192.168.0.0/24"
+
+An argument named "ipv4_range" is not expected here.
+
+Error: Insufficient resources blocks
+
+  on main_3.tf line 74, in resource "yandex_mdb_mysql_cluster" "mysql_cluster":
+  74: resource "yandex_mdb_mysql_cluster" "mysql_cluster" {
+
+At least 1 "resources" blocks are required.
+
+Error: Unsupported block type
+
+  on main_3.tf line 80, in resource "yandex_mdb_mysql_cluster" "mysql_cluster":
+  80:   config_spec {
+
+Blocks of type "config_spec" are not expected here.
+
+Error: Invalid resource type
+
+  on main_3.tf line 99, in resource "yandex_vpc_security_list" "mysql_security":
+  99: resource "yandex_vpc_security_list" "mysql_security" {
+
+The provider yandex-cloud/yandex does not support resource type
+"yandex_vpc_security_list".

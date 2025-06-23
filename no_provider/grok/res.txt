@@ -1,0 +1,97 @@
+main_1
+
+Error: Invalid function argument
+
+  on main_1.tf line 51, in resource "yandex_compute_instance" "crm_vm":
+  51:     ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}" # Укажите путь к вашему публичному SSH-ключу
+    ├────────────────
+    │ while calling file(path)
+
+Invalid value for "path" parameter: no file exists at "~/.ssh/id_rsa.pub";
+this function works only with files that are distributed as part of the
+configuration source code, so if this file will be created by a resource in
+this configuration you must instead obtain this result from an attribute of
+that resource.
+
+Error: Invalid function argument
+
+  on main_1.tf line 80, in resource "yandex_compute_instance" "shop_vm":
+  80:     ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}" # Укажите путь к вашему публичному SSH-ключу
+    ├────────────────
+    │ while calling file(path)
+
+Invalid value for "path" parameter: no file exists at "~/.ssh/id_rsa.pub";
+this function works only with files that are distributed as part of the
+configuration source code, so if this file will be created by a resource in
+this configuration you must instead obtain this result from an attribute of
+that resource.
+main_2
+
+Error: Argument or block definition required
+
+  on main_2.tf line 14:
+  14: Переменные
+
+An argument or block definition is required here. To set an argument, use the
+equals sign "=" to introduce the argument value.
+
+Error: Unsupported block type
+
+  on main_2.tf line 22:
+  22: Виртуальная машина для CRM
+
+Blocks of type "Виртуальная" are not expected here.
+
+Error: Invalid block definition
+
+  on main_2.tf line 22:
+  22: Виртуальная машина для CRM
+
+A block definition must have block content delimited by "{" and "}", starting
+on the same line as the block header.
+main_3
+
+Error: Unsupported block type
+
+  on main_3.tf line 1:
+   1: Переменные для конфигурации
+
+Blocks of type "Переменные" are not expected here.
+
+Error: Invalid block definition
+
+  on main_3.tf line 1:
+   1: Переменные для конфигурации
+
+A block definition must have block content delimited by "{" and "}", starting
+on the same line as the block header.
+
+Error: Unsupported block type
+
+  on main_3.tf line 9:
+   9: Сеть и подсеть
+
+Blocks of type "Сеть" are not expected here.
+
+Error: Invalid block definition
+
+  on main_3.tf line 9:
+   9: Сеть и подсеть
+
+A block definition must have block content delimited by "{" and "}", starting
+on the same line as the block header.
+
+Error: Unsupported block type
+
+  on main_3.tf line 15:
+  15: Виртуальная машина для CRM
+
+Blocks of type "Виртуальная" are not expected here.
+
+Error: Invalid block definition
+
+  on main_3.tf line 15:
+  15: Виртуальная машина для CRM
+
+A block definition must have block content delimited by "{" and "}", starting
+on the same line as the block header.

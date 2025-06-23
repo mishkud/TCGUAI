@@ -1,0 +1,90 @@
+main_1
+
+Error: Missing required argument
+
+  on main_1.tf line 37, in resource "yandex_mdb_mysql_cluster" "main":
+  37: resource "yandex_mdb_mysql_cluster" "main" {
+
+The argument "version" is required, but no definition was found.
+
+Error: Unsupported block type
+
+  on main_1.tf line 47, in resource "yandex_mdb_mysql_cluster" "main":
+  47:   mysql_config {
+
+Blocks of type "mysql_config" are not expected here. Did you mean to define
+argument "mysql_config"? If so, use the equals sign to assign it a value.
+main_2
+
+Error: Missing required argument
+
+  on main_2.tf line 66, in resource "yandex_mdb_mysql_cluster" "db_cluster":
+  66: resource "yandex_mdb_mysql_cluster" "db_cluster" {
+
+The argument "version" is required, but no definition was found.
+
+Error: Insufficient resources blocks
+
+  on main_2.tf line 66, in resource "yandex_mdb_mysql_cluster" "db_cluster":
+  66: resource "yandex_mdb_mysql_cluster" "db_cluster" {
+
+At least 1 "resources" blocks are required.
+
+Error: Unsupported block type
+
+  on main_2.tf line 71, in resource "yandex_mdb_mysql_cluster" "db_cluster":
+  71:   mysql_config {
+
+Blocks of type "mysql_config" are not expected here. Did you mean to define
+argument "mysql_config"? If so, use the equals sign to assign it a value.
+
+Error: Unsupported block type
+
+  on main_2.tf line 75, in resource "yandex_mdb_mysql_cluster" "db_cluster":
+  75:   databases {
+
+Blocks of type "databases" are not expected here. Did you mean "database"?
+
+Error: Unsupported block type
+
+  on main_2.tf line 80, in resource "yandex_mdb_mysql_cluster" "db_cluster":
+  80:   users {
+
+Blocks of type "users" are not expected here. Did you mean "user"?
+main_3
+
+Error: Missing required argument
+
+  on main_3.tf line 34, in resource "yandex_mdb_mysql_cluster" "default":
+  34: resource "yandex_mdb_mysql_cluster" "default" {
+
+The argument "version" is required, but no definition was found.
+
+Error: Unsupported argument
+
+  on main_3.tf line 46, in resource "yandex_mdb_mysql_cluster" "default":
+  46:     owner = "mysqluser"
+
+An argument named "owner" is not expected here.
+
+Error: Unsupported block type
+
+  on main_3.tf line 58, in resource "yandex_mdb_mysql_cluster" "default":
+  58:   mysql_config {
+
+Blocks of type "mysql_config" are not expected here. Did you mean to define
+argument "mysql_config"? If so, use the equals sign to assign it a value.
+
+Error: Invalid function argument
+
+  on main_3.tf line 76, in data "tls_public_key" "ssh_key":
+  76:   private_key_openssh = file(local.ssh_key_path)
+    ├────────────────
+    │ while calling file(path)
+    │ local.ssh_key_path is ".ssh/id_rsa.pub"
+
+Invalid value for "path" parameter: no file exists at ".ssh/id_rsa.pub"; this
+function works only with files that are distributed as part of the
+configuration source code, so if this file will be created by a resource in
+this configuration you must instead obtain this result from an attribute of
+that resource.

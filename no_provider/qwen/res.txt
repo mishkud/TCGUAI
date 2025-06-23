@@ -1,0 +1,140 @@
+main_1
+
+Error: Reference to undeclared input variable
+
+  on main_1.tf line 50, in resource "yandex_compute_instance" "crm_vm":
+  50:     subnet_id = var.yc_subnet_id
+
+An input variable with the name "yc_subnet_id" has not been declared. This
+variable can be declared with a variable "yc_subnet_id" {} block.
+
+Error: Reference to undeclared input variable
+
+  on main_1.tf line 55, in resource "yandex_compute_instance" "crm_vm":
+  55:     ssh-keys = "${var.user_name}:${file(var.yc_ssh_key_path)}"
+
+An input variable with the name "user_name" has not been declared. This
+variable can be declared with a variable "user_name" {} block.
+
+Error: Reference to undeclared input variable
+
+  on main_1.tf line 55, in resource "yandex_compute_instance" "crm_vm":
+  55:     ssh-keys = "${var.user_name}:${file(var.yc_ssh_key_path)}"
+
+An input variable with the name "yc_ssh_key_path" has not been declared. This
+variable can be declared with a variable "yc_ssh_key_path" {} block.
+
+Error: Reference to undeclared input variable
+
+  on main_1.tf line 75, in resource "yandex_compute_instance" "shop_vm":
+  75:     subnet_id = var.yc_subnet_id
+
+An input variable with the name "yc_subnet_id" has not been declared. This
+variable can be declared with a variable "yc_subnet_id" {} block.
+
+Error: Reference to undeclared input variable
+
+  on main_1.tf line 80, in resource "yandex_compute_instance" "shop_vm":
+  80:     ssh-keys = "${var.user_name}:${file(var.yc_ssh_key_path)}"
+
+An input variable with the name "user_name" has not been declared. This
+variable can be declared with a variable "user_name" {} block.
+
+Error: Reference to undeclared input variable
+
+  on main_1.tf line 80, in resource "yandex_compute_instance" "shop_vm":
+  80:     ssh-keys = "${var.user_name}:${file(var.yc_ssh_key_path)}"
+
+An input variable with the name "yc_ssh_key_path" has not been declared. This
+variable can be declared with a variable "yc_ssh_key_path" {} block.
+
+Error: Reference to undeclared input variable
+
+  on main_1.tf line 91, in resource "yandex_mdb_mysql_cluster" "default":
+  91:   network_id  = var.yc_network_id
+
+An input variable with the name "yc_network_id" has not been declared. This
+variable can be declared with a variable "yc_network_id" {} block.
+
+Error: Reference to undeclared input variable
+
+  on main_1.tf line 100, in resource "yandex_mdb_mysql_cluster" "default":
+ 100:     password = var.mysql_password
+
+An input variable with the name "mysql_password" has not been declared. This
+variable can be declared with a variable "mysql_password" {} block.
+
+Error: Reference to undeclared input variable
+
+  on main_1.tf line 109, in resource "yandex_mdb_mysql_cluster" "default":
+ 109:     subnet_id = var.yc_subnet_id
+
+An input variable with the name "yc_subnet_id" has not been declared. This
+variable can be declared with a variable "yc_subnet_id" {} block.
+main_2
+
+Error: Duplicate provider configuration
+
+  on main_2.tf line 25:
+  25: provider "yandex" {
+
+A default (non-aliased) provider configuration for "yandex" was already given
+at main_2.tf:10,1-18. If multiple configurations are required, set the
+"alias" argument for alternative configurations.
+main_3
+
+Error: Insufficient network_interface blocks
+
+  on main_3.tf line 38, in resource "yandex_compute_instance" "crm_vm":
+  38: resource "yandex_compute_instance" "crm_vm" {
+
+At least 1 "network_interface" blocks are required.
+
+Error: Unsupported argument
+
+  on main_3.tf line 41, in resource "yandex_compute_instance" "crm_vm":
+  41:   subnet_id   = var.subnet_id
+
+An argument named "subnet_id" is not expected here.
+
+Error: Insufficient network_interface blocks
+
+  on main_3.tf line 64, in resource "yandex_compute_instance" "shop_vm":
+  64: resource "yandex_compute_instance" "shop_vm" {
+
+At least 1 "network_interface" blocks are required.
+
+Error: Unsupported argument
+
+  on main_3.tf line 67, in resource "yandex_compute_instance" "shop_vm":
+  67:   subnet_id   = var.subnet_id
+
+An argument named "subnet_id" is not expected here.
+
+Error: Insufficient resources blocks
+
+  on main_3.tf line 90, in resource "yandex_mdb_mysql_cluster" "default":
+  90: resource "yandex_mdb_mysql_cluster" "default" {
+
+At least 1 "resources" blocks are required.
+
+Error: Unsupported block type
+
+  on main_3.tf line 96, in resource "yandex_mdb_mysql_cluster" "default":
+  96:   cluster_config {
+
+Blocks of type "cluster_config" are not expected here.
+
+Error: Unsupported block type
+
+  on main_3.tf line 102, in resource "yandex_mdb_mysql_cluster" "default":
+ 102:   databases {
+
+Blocks of type "databases" are not expected here. Did you mean "database"?
+
+Error: Unsupported block type
+
+  on main_3.tf line 107, in resource "yandex_mdb_mysql_cluster" "default":
+ 107:   users {
+
+Blocks of type "users" are not expected here. Did you mean "user"?

@@ -1,0 +1,168 @@
+main_1
+
+Error: Missing required argument
+
+  on main_1.tf line 70, in resource "yandex_mdb_mysql_cluster" "mysql_db":
+  70: resource "yandex_mdb_mysql_cluster" "mysql_db" {
+
+The argument "network_id" is required, but no definition was found.
+
+Error: Unsupported argument
+
+  on main_1.tf line 74, in resource "yandex_mdb_mysql_cluster" "mysql_db":
+  74:   allocated_storage   = 10
+
+An argument named "allocated_storage" is not expected here.
+main_2
+
+Error: Reference to undeclared input variable
+
+  on main_2.tf line 15, in resource "yandex_vpc_network" "network":
+  15:   name = var.network_name
+
+An input variable with the name "network_name" has not been declared. This
+variable can be declared with a variable "network_name" {} block.
+
+Error: Reference to undeclared input variable
+
+  on main_2.tf line 91, in resource "yandex_mdb_mysql_cluster" "mysql_db":
+  91:     password = var.mysql_password
+
+An input variable with the name "mysql_password" has not been declared. This
+variable can be declared with a variable "mysql_password" {} block.
+main_3
+
+Error: Missing required argument
+
+  on main_3.tf line 62, in resource "yandex_compute_instance_group" "crm_vm":
+  62: resource "yandex_compute_instance_group" "crm_vm" {
+
+The argument "service_account_id" is required, but no definition was found.
+
+Error: Insufficient allocation_policy blocks
+
+  on main_3.tf line 62, in resource "yandex_compute_instance_group" "crm_vm":
+  62: resource "yandex_compute_instance_group" "crm_vm" {
+
+At least 1 "allocation_policy" blocks are required.
+
+Error: Unsupported argument
+
+  on main_3.tf line 72, in resource "yandex_compute_instance_group" "crm_vm":
+  72:         image_family = var.vm_image_family
+
+An argument named "image_family" is not expected here.
+
+Error: Unsupported argument
+
+  on main_3.tf line 76, in resource "yandex_compute_instance_group" "crm_vm":
+  76:       subnet_id              = yandex_vpc_subnet.crm_subnet.id
+
+An argument named "subnet_id" is not expected here. Did you mean
+"subnet_ids"?
+
+Error: Unsupported block type
+
+  on main_3.tf line 77, in resource "yandex_compute_instance_group" "crm_vm":
+  77:       primary_v4_address {
+
+Blocks of type "primary_v4_address" are not expected here.
+
+Error: Missing required argument
+
+  on main_3.tf line 87, in resource "yandex_compute_instance_group" "crm_vm":
+  87:   deploy_policy {
+
+The argument "max_expansion" is required, but no definition was found.
+
+Error: Missing required argument
+
+  on main_3.tf line 87, in resource "yandex_compute_instance_group" "crm_vm":
+  87:   deploy_policy {
+
+The argument "max_unavailable" is required, but no definition was found.
+
+Error: Unsupported argument
+
+  on main_3.tf line 88, in resource "yandex_compute_instance_group" "crm_vm":
+  88:     max_expand_size      = 1
+
+An argument named "max_expand_size" is not expected here.
+
+Error: Unsupported argument
+
+  on main_3.tf line 90, in resource "yandex_compute_instance_group" "crm_vm":
+  90:   load_balancer_state   = false
+
+An argument named "load_balancer_state" is not expected here.
+
+Error: Missing required argument
+
+  on main_3.tf line 93, in resource "yandex_mdb_mysql_cluster" "crm_db":
+  93: resource "yandex_mdb_mysql_cluster" "crm_db" {
+
+The argument "network_id" is required, but no definition was found.
+
+Error: Missing required argument
+
+  on main_3.tf line 125, in resource "yandex_compute_instance_group" "shop_vm":
+ 125: resource "yandex_compute_instance_group" "shop_vm" {
+
+The argument "service_account_id" is required, but no definition was found.
+
+Error: Insufficient allocation_policy blocks
+
+  on main_3.tf line 125, in resource "yandex_compute_instance_group" "shop_vm":
+ 125: resource "yandex_compute_instance_group" "shop_vm" {
+
+At least 1 "allocation_policy" blocks are required.
+
+Error: Unsupported argument
+
+  on main_3.tf line 135, in resource "yandex_compute_instance_group" "shop_vm":
+ 135:         image_family = var.vm_image_family
+
+An argument named "image_family" is not expected here.
+
+Error: Unsupported argument
+
+  on main_3.tf line 139, in resource "yandex_compute_instance_group" "shop_vm":
+ 139:       subnet_id              = yandex_vpc_subnet.crm_subnet.id
+
+An argument named "subnet_id" is not expected here. Did you mean
+"subnet_ids"?
+
+Error: Unsupported block type
+
+  on main_3.tf line 140, in resource "yandex_compute_instance_group" "shop_vm":
+ 140:       primary_v4_address {
+
+Blocks of type "primary_v4_address" are not expected here.
+
+Error: Missing required argument
+
+  on main_3.tf line 150, in resource "yandex_compute_instance_group" "shop_vm":
+ 150:   deploy_policy {
+
+The argument "max_expansion" is required, but no definition was found.
+
+Error: Missing required argument
+
+  on main_3.tf line 150, in resource "yandex_compute_instance_group" "shop_vm":
+ 150:   deploy_policy {
+
+The argument "max_unavailable" is required, but no definition was found.
+
+Error: Unsupported argument
+
+  on main_3.tf line 151, in resource "yandex_compute_instance_group" "shop_vm":
+ 151:     max_expand_size      = 1
+
+An argument named "max_expand_size" is not expected here.
+
+Error: Unsupported argument
+
+  on main_3.tf line 153, in resource "yandex_compute_instance_group" "shop_vm":
+ 153:   load_balancer_state   = false
+
+An argument named "load_balancer_state" is not expected here.

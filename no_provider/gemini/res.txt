@@ -1,0 +1,69 @@
+main_1
+
+Error: Reference to undeclared input variable
+
+  on main_1.tf line 221, in resource "yandex_mdb_mysql_cluster" "mysql_db":
+ 221:     password = try(var.mysql_password, random_password.mysql_password_generated.result)
+
+An input variable with the name "mysql_password" has not been declared. This
+variable can be declared with a variable "mysql_password" {} block.
+main_2
+
+Warning: Argument is deprecated
+
+  with yandex_mdb_mysql_cluster.mysql_db,
+  on main_2.tf line 100, in resource "yandex_mdb_mysql_cluster" "mysql_db":
+ 100: resource "yandex_mdb_mysql_cluster" "mysql_db" {
+
+to manage databases, please switch to using a separate resource type
+yandex_mdb_mysql_database
+
+(and one more similar warning elsewhere)
+
+Error: Invalid function argument
+
+  on main_2.tf line 62, in resource "yandex_compute_instance" "crm_vm":
+  62:     ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}" // Пример: пользователь ubuntu и путь к вашему ключу
+    ├────────────────
+    │ while calling file(path)
+
+Invalid value for "path" parameter: no file exists at "~/.ssh/id_rsa.pub";
+this function works only with files that are distributed as part of the
+configuration source code, so if this file will be created by a resource in
+this configuration you must instead obtain this result from an attribute of
+that resource.
+
+Error: Invalid function argument
+
+  on main_2.tf line 95, in resource "yandex_compute_instance" "shop_vm":
+  95:     ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"
+    ├────────────────
+    │ while calling file(path)
+
+Invalid value for "path" parameter: no file exists at "~/.ssh/id_rsa.pub";
+this function works only with files that are distributed as part of the
+configuration source code, so if this file will be created by a resource in
+this configuration you must instead obtain this result from an attribute of
+that resource.
+main_3
+
+Error: Missing required argument
+
+  on main_3.tf line 184, in resource "yandex_mdb_mysql_cluster" "mysql_cluster":
+ 184: resource "yandex_mdb_mysql_cluster" "mysql_cluster" {
+
+The argument "version" is required, but no definition was found.
+
+Error: Insufficient resources blocks
+
+  on main_3.tf line 184, in resource "yandex_mdb_mysql_cluster" "mysql_cluster":
+ 184: resource "yandex_mdb_mysql_cluster" "mysql_cluster" {
+
+At least 1 "resources" blocks are required.
+
+Error: Unsupported block type
+
+  on main_3.tf line 189, in resource "yandex_mdb_mysql_cluster" "mysql_cluster":
+ 189:   config {
+
+Blocks of type "config" are not expected here.

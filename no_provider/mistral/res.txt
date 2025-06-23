@@ -1,0 +1,114 @@
+main_1
+
+Warning: Argument is deprecated
+
+  with yandex_mdb_mysql_cluster.mysql_db,
+  on main_1.tf line 71, in resource "yandex_mdb_mysql_cluster" "mysql_db":
+  71: resource "yandex_mdb_mysql_cluster" "mysql_db" {
+
+to manage users, please switch to using a separate resource type
+yandex_mdb_mysql_user
+
+(and one more similar warning elsewhere)
+
+Error: Invalid function argument
+
+  on main_1.tf line 38, in resource "yandex_compute_instance" "crm_vm":
+  38:     ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"
+    ├────────────────
+    │ while calling file(path)
+
+Invalid value for "path" parameter: no file exists at "~/.ssh/id_rsa.pub";
+this function works only with files that are distributed as part of the
+configuration source code, so if this file will be created by a resource in
+this configuration you must instead obtain this result from an attribute of
+that resource.
+
+Error: Invalid function argument
+
+  on main_1.tf line 66, in resource "yandex_compute_instance" "shop_vm":
+  66:     ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"
+    ├────────────────
+    │ while calling file(path)
+
+Invalid value for "path" parameter: no file exists at "~/.ssh/id_rsa.pub";
+this function works only with files that are distributed as part of the
+configuration source code, so if this file will be created by a resource in
+this configuration you must instead obtain this result from an attribute of
+that resource.
+main_2
+
+Warning: Argument is deprecated
+
+  with yandex_mdb_mysql_cluster.mysql_db,
+  on main_2.tf line 71, in resource "yandex_mdb_mysql_cluster" "mysql_db":
+  71: resource "yandex_mdb_mysql_cluster" "mysql_db" {
+
+to manage databases, please switch to using a separate resource type
+yandex_mdb_mysql_database
+
+(and one more similar warning elsewhere)
+
+Error: Invalid function argument
+
+  on main_2.tf line 38, in resource "yandex_compute_instance" "crm_vm":
+  38:     ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"
+    ├────────────────
+    │ while calling file(path)
+
+Invalid value for "path" parameter: no file exists at "~/.ssh/id_rsa.pub";
+this function works only with files that are distributed as part of the
+configuration source code, so if this file will be created by a resource in
+this configuration you must instead obtain this result from an attribute of
+that resource.
+
+Error: Invalid function argument
+
+  on main_2.tf line 66, in resource "yandex_compute_instance" "shop_vm":
+  66:     ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"
+    ├────────────────
+    │ while calling file(path)
+
+Invalid value for "path" parameter: no file exists at "~/.ssh/id_rsa.pub";
+this function works only with files that are distributed as part of the
+configuration source code, so if this file will be created by a resource in
+this configuration you must instead obtain this result from an attribute of
+that resource.
+main_3
+
+Warning: Argument is deprecated
+
+  with yandex_mdb_mysql_cluster.mysql_db,
+  on main_3.tf line 93, in resource "yandex_mdb_mysql_cluster" "mysql_db":
+  93: resource "yandex_mdb_mysql_cluster" "mysql_db" {
+
+to manage databases, please switch to using a separate resource type
+yandex_mdb_mysql_database
+
+(and one more similar warning elsewhere)
+
+Error: Invalid function argument
+
+  on main_3.tf line 60, in resource "yandex_compute_instance" "crm_vm":
+  60:     ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"
+    ├────────────────
+    │ while calling file(path)
+
+Invalid value for "path" parameter: no file exists at "~/.ssh/id_rsa.pub";
+this function works only with files that are distributed as part of the
+configuration source code, so if this file will be created by a resource in
+this configuration you must instead obtain this result from an attribute of
+that resource.
+
+Error: Invalid function argument
+
+  on main_3.tf line 88, in resource "yandex_compute_instance" "shop_vm":
+  88:     ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"
+    ├────────────────
+    │ while calling file(path)
+
+Invalid value for "path" parameter: no file exists at "~/.ssh/id_rsa.pub";
+this function works only with files that are distributed as part of the
+configuration source code, so if this file will be created by a resource in
+this configuration you must instead obtain this result from an attribute of
+that resource.

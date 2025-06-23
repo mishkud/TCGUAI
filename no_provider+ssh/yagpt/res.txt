@@ -1,0 +1,62 @@
+main_1
+
+Error: Unterminated tuple constructor expression
+
+  on main_1.tf line 135, in resource "yandex_mdb_mysql_host_connection" "mysql_connection":
+ 135:   security_group_ids = [yandex_vpc_security_group
+
+There is no corresponding closing bracket before the end of the file. This
+may be caused by incorrect bracket nesting elsewhere in this file.
+main_2
+
+Error: Missing required argument
+
+  on main_2.tf line 18, in resource "yandex_vpc_subnet" "main_subnet":
+  18: resource "yandex_vpc_subnet" "main_subnet" {
+
+The argument "v4_cidr_blocks" is required, but no definition was found.
+
+Error: Unsupported argument
+
+  on main_2.tf line 22, in resource "yandex_vpc_subnet" "main_subnet":
+  22:   ipv4_range = "10.1.0.0/24"
+
+An argument named "ipv4_range" is not expected here.
+
+Error: Missing required argument
+
+  on main_2.tf line 81, in resource "yandex_mdb_mysql_cluster" "mysql_cluster":
+  81: resource "yandex_mdb_mysql_cluster" "mysql_cluster" {
+
+The argument "version" is required, but no definition was found.
+
+Error: Insufficient resources blocks
+
+  on main_2.tf line 81, in resource "yandex_mdb_mysql_cluster" "mysql_cluster":
+  81: resource "yandex_mdb_mysql_cluster" "mysql_cluster" {
+
+At least 1 "resources" blocks are required.
+
+Error: Unsupported block type
+
+  on main_2.tf line 86, in resource "yandex_mdb_mysql_cluster" "mysql_cluster":
+  86:   config_spec {
+
+Blocks of type "config_spec" are not expected here.
+
+Error: Invalid resource type
+
+  on main_2.tf line 107, in resource "yandex_vpc_security_list" "mysql_security_list":
+ 107: resource "yandex_vpc_security_list" "mysql_security_list" {
+
+The provider yandex-cloud/yandex does not support resource type
+"yandex_vpc_security_list".
+main_3
+
+Error: Attribute redefined
+
+  on main_3.tf line 118, in resource "yandex_vpc_security_group" "mysql_sg":
+ 118:     from_ip_address = yandex_compute_instance.shop_server.network_interface[0].ip_address
+
+The argument "from_ip_address" was already set at main_3.tf:117,5-20. Each
+argument may be set only once.

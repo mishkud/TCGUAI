@@ -1,0 +1,150 @@
+main_1
+
+Warning: Argument is deprecated
+
+  with yandex_mdb_mysql_cluster.app_mysql,
+  on main_1.tf line 184, in resource "yandex_mdb_mysql_cluster" "app_mysql":
+ 184: resource "yandex_mdb_mysql_cluster" "app_mysql" {
+
+to manage databases, please switch to using a separate resource type
+yandex_mdb_mysql_database
+
+(and one more similar warning elsewhere)
+
+Error: Unsupported argument
+
+  on main_1.tf line 106, in resource "yandex_compute_instance" "crm_vm":
+ 106:       image_family = "ubuntu-2204-lts" # Последний образ Ubuntu 22.04 LTS
+
+An argument named "image_family" is not expected here.
+
+Error: Invalid function argument
+
+  on main_1.tf line 121, in resource "yandex_compute_instance" "crm_vm":
+ 121:     ssh-keys = "ubuntu:${file(".ssh/id_rsa")}"
+    ├────────────────
+    │ while calling file(path)
+
+Invalid value for "path" parameter: no file exists at ".ssh/id_rsa"; this
+function works only with files that are distributed as part of the
+configuration source code, so if this file will be created by a resource in
+this configuration you must instead obtain this result from an attribute of
+that resource.
+
+Error: Unsupported argument
+
+  on main_1.tf line 152, in resource "yandex_compute_instance" "store_vm":
+ 152:       image_family = "ubuntu-2204-lts"
+
+An argument named "image_family" is not expected here.
+
+Error: Invalid function argument
+
+  on main_1.tf line 167, in resource "yandex_compute_instance" "store_vm":
+ 167:     ssh-keys = "ubuntu:${file(".ssh/id_rsa")}"
+    ├────────────────
+    │ while calling file(path)
+
+Invalid value for "path" parameter: no file exists at ".ssh/id_rsa"; this
+function works only with files that are distributed as part of the
+configuration source code, so if this file will be created by a resource in
+this configuration you must instead obtain this result from an attribute of
+that resource.
+
+Error: Cannot index a set value
+
+  on main_1.tf line 251, in output "mysql_database_name":
+ 251:   value       = yandex_mdb_mysql_cluster.app_mysql.database[0].name
+
+Block type "database" is represented by a set of objects, and set elements do
+not have addressable keys. To find elements matching specific criteria, use a
+"for" expression with an "if" clause.
+main_2
+
+Error: Invalid function argument
+
+  on main_2.tf line 15, in locals:
+  15:   ssh_public_key  = file("~/.ssh/id_rsa.pub") // Путь к вашему публичному SSH ключу
+    ├────────────────
+    │ while calling file(path)
+
+Invalid value for "path" parameter: no file exists at "~/.ssh/id_rsa.pub";
+this function works only with files that are distributed as part of the
+configuration source code, so if this file will be created by a resource in
+this configuration you must instead obtain this result from an attribute of
+that resource.
+
+Error: Invalid resource type
+
+  on main_2.tf line 115, in resource "yandex_mdb_database" "app_db":
+ 115: resource "yandex_mdb_database" "app_db" {
+
+The provider yandex-cloud/yandex does not support resource type
+"yandex_mdb_database".
+
+Error: Invalid resource type
+
+  on main_2.tf line 120, in resource "yandex_mdb_user" "app_user":
+ 120: resource "yandex_mdb_user" "app_user" {
+
+The provider yandex-cloud/yandex does not support resource type
+"yandex_mdb_user".
+main_3
+
+Warning: Argument is deprecated
+
+  with yandex_mdb_mysql_cluster.app_mysql,
+  on main_3.tf line 63, in resource "yandex_mdb_mysql_cluster" "app_mysql":
+  63: resource "yandex_mdb_mysql_cluster" "app_mysql" {
+
+to manage databases, please switch to using a separate resource type
+yandex_mdb_mysql_database
+
+Error: Unsupported argument
+
+  on main_3.tf line 114, in resource "yandex_compute_instance" "crm_vm":
+ 114:       image_family = "ubuntu-2204-lts" # Семейство образов Ubuntu 22.04 LTS
+
+An argument named "image_family" is not expected here.
+
+Error: Invalid function argument
+
+  on main_3.tf line 131, in resource "yandex_compute_instance" "crm_vm":
+ 131:     ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"
+    ├────────────────
+    │ while calling file(path)
+
+Invalid value for "path" parameter: no file exists at "~/.ssh/id_rsa.pub";
+this function works only with files that are distributed as part of the
+configuration source code, so if this file will be created by a resource in
+this configuration you must instead obtain this result from an attribute of
+that resource.
+
+Error: Unsupported argument
+
+  on main_3.tf line 148, in resource "yandex_compute_instance" "store_vm":
+ 148:       image_family = "ubuntu-2204-lts"
+
+An argument named "image_family" is not expected here.
+
+Error: Invalid function argument
+
+  on main_3.tf line 162, in resource "yandex_compute_instance" "store_vm":
+ 162:     ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"
+    ├────────────────
+    │ while calling file(path)
+
+Invalid value for "path" parameter: no file exists at "~/.ssh/id_rsa.pub";
+this function works only with files that are distributed as part of the
+configuration source code, so if this file will be created by a resource in
+this configuration you must instead obtain this result from an attribute of
+that resource.
+
+Error: Cannot index a set value
+
+  on main_3.tf line 184, in output "mysql_database_name":
+ 184:   value       = yandex_mdb_mysql_cluster.app_mysql.database[0].name
+
+Block type "database" is represented by a set of objects, and set elements do
+not have addressable keys. To find elements matching specific criteria, use a
+"for" expression with an "if" clause.

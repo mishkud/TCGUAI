@@ -1,0 +1,198 @@
+main_1
+
+Error: Invalid output name
+
+  on main_1.tf line 109, in output "CRM VM IP Address":
+ 109: output "CRM VM IP Address" {
+
+A name must start with a letter or underscore and may contain only letters,
+digits, underscores, and dashes.
+
+Error: Invalid output name
+
+  on main_1.tf line 113, in output "Shop VM IP Address":
+ 113: output "Shop VM IP Address" {
+
+A name must start with a letter or underscore and may contain only letters,
+digits, underscores, and dashes.
+main_2
+
+Error: Invalid function argument
+
+  on main_2.tf line 27, in locals:
+  27:   ssh_public_key = file(".ssh/id_rsa.pub")
+    ├────────────────
+    │ while calling file(path)
+
+Invalid value for "path" parameter: no file exists at ".ssh/id_rsa.pub"; this
+function works only with files that are distributed as part of the
+configuration source code, so if this file will be created by a resource in
+this configuration you must instead obtain this result from an attribute of
+that resource.
+
+Error: Missing required argument
+
+  on main_2.tf line 53, in resource "yandex_mdb_mysql_cluster" "mysql-cluster":
+  53: resource "yandex_mdb_mysql_cluster" "mysql-cluster" {
+
+The argument "network_id" is required, but no definition was found.
+
+Error: Insufficient resources blocks
+
+  on main_2.tf line 53, in resource "yandex_mdb_mysql_cluster" "mysql-cluster":
+  53: resource "yandex_mdb_mysql_cluster" "mysql-cluster" {
+
+At least 1 "resources" blocks are required.
+
+Error: Unsupported argument
+
+  on main_2.tf line 57, in resource "yandex_mdb_mysql_cluster" "mysql-cluster":
+  57:   allocated_storage        = 10
+
+An argument named "allocated_storage" is not expected here.
+
+Error: Unsupported block type
+
+  on main_2.tf line 58, in resource "yandex_mdb_mysql_cluster" "mysql-cluster":
+  58:   mysql_config {
+
+Blocks of type "mysql_config" are not expected here. Did you mean to define
+argument "mysql_config"? If so, use the equals sign to assign it a value.
+main_3
+
+Error: Missing required argument
+
+  on main_3.tf line 24, in resource "yandex_compute_instance_group" "crm-instance-group":
+  24: resource "yandex_compute_instance_group" "crm-instance-group" {
+
+The argument "service_account_id" is required, but no definition was found.
+
+Error: Insufficient deploy_policy blocks
+
+  on main_3.tf line 24, in resource "yandex_compute_instance_group" "crm-instance-group":
+  24: resource "yandex_compute_instance_group" "crm-instance-group" {
+
+At least 1 "deploy_policy" blocks are required.
+
+Error: Insufficient allocation_policy blocks
+
+  on main_3.tf line 24, in resource "yandex_compute_instance_group" "crm-instance-group":
+  24: resource "yandex_compute_instance_group" "crm-instance-group" {
+
+At least 1 "allocation_policy" blocks are required.
+
+Error: Unsupported block type
+
+  on main_3.tf line 50, in resource "yandex_compute_instance_group" "crm-instance-group":
+  50:   load_balancer_spec {}
+
+Blocks of type "load_balancer_spec" are not expected here.
+
+Error: Missing required argument
+
+  on main_3.tf line 53, in resource "yandex_compute_instance_group" "shop-instance-group":
+  53: resource "yandex_compute_instance_group" "shop-instance-group" {
+
+The argument "service_account_id" is required, but no definition was found.
+
+Error: Insufficient deploy_policy blocks
+
+  on main_3.tf line 53, in resource "yandex_compute_instance_group" "shop-instance-group":
+  53: resource "yandex_compute_instance_group" "shop-instance-group" {
+
+At least 1 "deploy_policy" blocks are required.
+
+Error: Insufficient allocation_policy blocks
+
+  on main_3.tf line 53, in resource "yandex_compute_instance_group" "shop-instance-group":
+  53: resource "yandex_compute_instance_group" "shop-instance-group" {
+
+At least 1 "allocation_policy" blocks are required.
+
+Error: Unsupported block type
+
+  on main_3.tf line 79, in resource "yandex_compute_instance_group" "shop-instance-group":
+  79:   load_balancer_spec {}
+
+Blocks of type "load_balancer_spec" are not expected here.
+
+Error: Missing required argument
+
+  on main_3.tf line 82, in resource "yandex_mdb_mysql_cluster" "mysql-cluster":
+  82: resource "yandex_mdb_mysql_cluster" "mysql-cluster" {
+
+The argument "network_id" is required, but no definition was found.
+
+Error: Unsupported block type
+
+  on main_3.tf line 86, in resource "yandex_mdb_mysql_cluster" "mysql-cluster":
+  86:   mysql_config_8_0 {
+
+Blocks of type "mysql_config_8_0" are not expected here.
+
+Error: Missing required argument
+
+  on main_3.tf line 93, in resource "yandex_mdb_mysql_cluster" "mysql-cluster":
+  93:   resources {
+
+The argument "disk_size" is required, but no definition was found.
+
+Error: Missing required argument
+
+  on main_3.tf line 93, in resource "yandex_mdb_mysql_cluster" "mysql-cluster":
+  93:   resources {
+
+The argument "disk_type_id" is required, but no definition was found.
+
+Error: Missing required argument
+
+  on main_3.tf line 93, in resource "yandex_mdb_mysql_cluster" "mysql-cluster":
+  93:   resources {
+
+The argument "resource_preset_id" is required, but no definition was found.
+
+Error: Unsupported argument
+
+  on main_3.tf line 94, in resource "yandex_mdb_mysql_cluster" "mysql-cluster":
+  94:     resource_purpose = "HOST"
+
+An argument named "resource_purpose" is not expected here.
+
+Error: Unsupported argument
+
+  on main_3.tf line 95, in resource "yandex_mdb_mysql_cluster" "mysql-cluster":
+  95:     type              = "memory-optimized-b2-medium"
+
+An argument named "type" is not expected here.
+
+Error: Reference to undeclared resource
+
+  on main_3.tf line 119, in output "mysql_connection_string":
+ 119:                  yandx_mdb_mysql_cluster.mysql-cluster.user[0].name,
+
+A managed resource "yandx_mdb_mysql_cluster" "mysql-cluster" has not been
+declared in the root module.
+
+Error: Reference to undeclared resource
+
+  on main_3.tf line 120, in output "mysql_connection_string":
+ 120:                  yandx_mdb_mysql_cluster.mysql-cluster.user[0].password,
+
+A managed resource "yandx_mdb_mysql_cluster" "mysql-cluster" has not been
+declared in the root module.
+
+Error: Reference to undeclared resource
+
+  on main_3.tf line 121, in output "mysql_connection_string":
+ 121:                  yandx_mdb_mysql_cluster.mysql-cluster.host[0].fqdn,
+
+A managed resource "yandx_mdb_mysql_cluster" "mysql-cluster" has not been
+declared in the root module.
+
+Error: Reference to undeclared resource
+
+  on main_3.tf line 122, in output "mysql_connection_string":
+ 122:                  yandx_mdb_mysql_cluster.mysql-cluster.database[0].name)
+
+A managed resource "yandx_mdb_mysql_cluster" "mysql-cluster" has not been
+declared in the root module.

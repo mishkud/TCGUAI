@@ -1,0 +1,158 @@
+main_1
+
+Error: Invalid function argument
+
+  on main_1.tf line 77, in resource "yandex_compute_instance" "crm":
+  77:     ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"
+    ├────────────────
+    │ while calling file(path)
+
+Invalid value for "path" parameter: no file exists at "~/.ssh/id_rsa.pub";
+this function works only with files that are distributed as part of the
+configuration source code, so if this file will be created by a resource in
+this configuration you must instead obtain this result from an attribute of
+that resource.
+
+Error: Invalid function argument
+
+  on main_1.tf line 103, in resource "yandex_compute_instance" "shop":
+ 103:     ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"
+    ├────────────────
+    │ while calling file(path)
+
+Invalid value for "path" parameter: no file exists at "~/.ssh/id_rsa.pub";
+this function works only with files that are distributed as part of the
+configuration source code, so if this file will be created by a resource in
+this configuration you must instead obtain this result from an attribute of
+that resource.
+
+Error: Missing required argument
+
+  on main_1.tf line 107, in resource "yandex_mdb_mysql_cluster" "default":
+ 107: resource "yandex_mdb_mysql_cluster" "default" {
+
+The argument "version" is required, but no definition was found.
+
+Error: Insufficient resources blocks
+
+  on main_1.tf line 107, in resource "yandex_mdb_mysql_cluster" "default":
+ 107: resource "yandex_mdb_mysql_cluster" "default" {
+
+At least 1 "resources" blocks are required.
+
+Error: Unsupported block type
+
+  on main_1.tf line 112, in resource "yandex_mdb_mysql_cluster" "default":
+ 112:   config {
+
+Blocks of type "config" are not expected here.
+main_2
+
+Error: Unsupported argument
+
+  on main_2.tf line 75, in resource "yandex_compute_instance" "crm_vm":
+  75:       image_family = var.vm_image_family
+
+An argument named "image_family" is not expected here.
+
+Error: Invalid function argument
+
+  on main_2.tf line 85, in resource "yandex_compute_instance" "crm_vm":
+  85:     ssh-keys = "${var.vm_username}:${file("~/.ssh/id_rsa.pub")}"
+    ├────────────────
+    │ while calling file(path)
+
+Invalid value for "path" parameter: no file exists at "~/.ssh/id_rsa.pub";
+this function works only with files that are distributed as part of the
+configuration source code, so if this file will be created by a resource in
+this configuration you must instead obtain this result from an attribute of
+that resource.
+
+Error: Unsupported argument
+
+  on main_2.tf line 102, in resource "yandex_compute_instance" "shop_vm":
+ 102:       image_family = var.vm_image_family
+
+An argument named "image_family" is not expected here.
+
+Error: Invalid function argument
+
+  on main_2.tf line 112, in resource "yandex_compute_instance" "shop_vm":
+ 112:     ssh-keys = "${var.vm_username}:${file("~/.ssh/id_rsa.pub")}"
+    ├────────────────
+    │ while calling file(path)
+
+Invalid value for "path" parameter: no file exists at "~/.ssh/id_rsa.pub";
+this function works only with files that are distributed as part of the
+configuration source code, so if this file will be created by a resource in
+this configuration you must instead obtain this result from an attribute of
+that resource.
+
+Error: Missing required argument
+
+  on main_2.tf line 120, in resource "yandex_mdb_mysql_cluster" "mysql_cluster":
+ 120: resource "yandex_mdb_mysql_cluster" "mysql_cluster" {
+
+The argument "version" is required, but no definition was found.
+
+Error: Insufficient resources blocks
+
+  on main_2.tf line 120, in resource "yandex_mdb_mysql_cluster" "mysql_cluster":
+ 120: resource "yandex_mdb_mysql_cluster" "mysql_cluster" {
+
+At least 1 "resources" blocks are required.
+
+Error: Unsupported block type
+
+  on main_2.tf line 125, in resource "yandex_mdb_mysql_cluster" "mysql_cluster":
+ 125:   config {
+
+Blocks of type "config" are not expected here.
+main_3
+
+Error: Invalid function argument
+
+  on main_3.tf line 61, in resource "yandex_compute_instance" "crm":
+  61:     ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}" # Замените на путь к вашему публичному ключу
+    ├────────────────
+    │ while calling file(path)
+
+Invalid value for "path" parameter: no file exists at "~/.ssh/id_rsa.pub";
+this function works only with files that are distributed as part of the
+configuration source code, so if this file will be created by a resource in
+this configuration you must instead obtain this result from an attribute of
+that resource.
+
+Error: Invalid function argument
+
+  on main_3.tf line 88, in resource "yandex_compute_instance" "store":
+  88:     ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"
+    ├────────────────
+    │ while calling file(path)
+
+Invalid value for "path" parameter: no file exists at "~/.ssh/id_rsa.pub";
+this function works only with files that are distributed as part of the
+configuration source code, so if this file will be created by a resource in
+this configuration you must instead obtain this result from an attribute of
+that resource.
+
+Error: Missing required argument
+
+  on main_3.tf line 103, in resource "yandex_mdb_mysql_cluster" "mysql":
+ 103: resource "yandex_mdb_mysql_cluster" "mysql" {
+
+The argument "version" is required, but no definition was found.
+
+Error: Insufficient resources blocks
+
+  on main_3.tf line 103, in resource "yandex_mdb_mysql_cluster" "mysql":
+ 103: resource "yandex_mdb_mysql_cluster" "mysql" {
+
+At least 1 "resources" blocks are required.
+
+Error: Unsupported block type
+
+  on main_3.tf line 108, in resource "yandex_mdb_mysql_cluster" "mysql":
+ 108:   config {
+
+Blocks of type "config" are not expected here.
