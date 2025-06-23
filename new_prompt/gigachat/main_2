@@ -1,0 +1,126 @@
+terraform {
+  required_providers {
+    yandex = {
+      source = "yandex-cloud/yandex"
+    }
+  }
+  required_version = ">= 0.13"
+}
+
+provider "yandex" {
+  zone = "<зона_доступности_по_умолчанию>"
+}
+
+# Main network resources
+
+resource "yandex_vpc_network" "network" {
+  name = "main-network"
+}
+
+resource "yandex_vpc_subnet" "subnet" {
+  zone           = "ru-central1-a"
+  network_id     = yandex_vpc_network.network.id
+  v4_cidr_blocks = ["10.130.0.0/24"]
+  name           = "main-subnet"
+}
+
+# VM Resources
+
+variable "public_key_path" {
+  default = "~/.ssh/id_rsa.pub"
+}
+
+locals {
+  ssh_public_key = file(var.public_key_path)
+}
+
+resource "yandex_compute_instance" "crm_server" {
+  name        = "crm-server"
+  platform_id = "standard-v3"
+  resources {
+    cores  = 2
+    memory = 2
+  }
+  boot_disk {
+    initialize_params {
+      image_id = data.yandex_compute_image.ubuntu_2204.id
+      size     = 20
+    }
+  }
+  network_interface {
+    subnet_id = yandex_vpc_subnet.subnet.id
+    nat       = true
+  }
+  metadata = {
+    ssh-keys = local.ssh_public_key
+  }
+}
+
+resource "yandex_compute_instance" "webshop_server" {
+  name        = "webshop-server"
+  platform_id = "standard-v3"
+  resources {
+    cores  = 2
+    memory = 2
+  }
+  boot_disk {
+    initialize_params {
+      image_id = data.yandex_compute_image.ubuntu_2204.id
+      size     = 20
+    }
+  }
+  network_interface {
+    subnet_id = yandex_vpc_subnet.subnet.id
+    nat       = true
+  }
+  metadata = {
+    ssh-keys = local.ssh_public_key
+  }
+}
+
+data "yandex_compute_image" "ubuntu_2204" {
+  family = "ubuntu-2204-lts"
+}
+
+# Managed MySQL database resource
+
+resource "yandex_mdb_mysql_cluster" "mysql_db" {
+  name                 = "managed-mysql-cluster"
+  environment          = "PRODUCTION"
+  version              = "8.0"
+  allocated_storage    = 20
+  host {
+    name                = "mysql-host"
+    subnet_id           = yandex_vpc_subnet.subnet.id
+    assign_public_ip    = false
+  }
+  resources {
+    resource_preset_id  = "s2.micro"
+    disk_type_id        = "network-hdd"
+    disk_size           = 20
+  }
+}
+
+# Security groups for managed MySQL access only from VMs
+
+resource "yandex_vpc_security_group" "allow_vm_to_mysql" {
+  name = "allow-vm-to-mysql"
+  ingress {
+    description    = "Allow traffic to MySQL cluster"
+    ports          = ["3306"]
+    protocol       = "TCP"
+    v4_cidr_blocks = [
+      cidr(yandex_compute_instance.crm_server.network_interface.0.ip_address),
+      cidr(yandex_compute_instance.webshop_server.network_interface.0.ip_address)]
+  }
+}
+
+# Outputs for public IP addresses of the instances
+
+output "crm_server_external_ip" {
+  value = yandex_compute_instance.crm_server.network_interface.0.nat_ip_address
+}
+
+output "webshop_server_external_ip" {
+  value = yandex_compute_instance.webshop_server.network_interface.0.nat_ip_address
+}

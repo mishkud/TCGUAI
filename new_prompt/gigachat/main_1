@@ -1,0 +1,177 @@
+terraform {
+  required_providers {
+    yandex = {
+      source = "yandex-cloud/yandex"
+    }
+  }
+  required_version = ">= 0.13"
+}
+
+provider "yandex" {
+  zone = "<зона_доступности_по_умолчанию>"
+}
+
+# Провайдер Яндекс Облако будет подключён отдельно
+
+variable "ssh_public_key_path" {
+  default = "~/.ssh/id_rsa.pub"
+}
+
+locals {
+  ssh_public_key_content = file(var.ssh_public_key_path)
+}
+
+resource "yandox_vpc_network" "network" {
+  name = "crm-store-network"
+}
+
+resource "yandox_vpc_subnet" "subnet" {
+  zone           = "ru-central1-a"
+  network_id     = yandox_vpc_network.network.id
+  v4_cidr_blocks = ["10.130.0.0/24"]
+  name           = "crm-store-subnet"
+}
+
+# Security Group for VM instances allowing only SSH from anywhere
+resource "yandox_vpc_security_group" "vm_sg" {
+  name       = "allow-ssh-for-vms"
+  network_id = yandox_vpc_network.network.id
+
+  ingress {
+    description      = "Allow SSH traffic to VMs"
+    protocol         = "TCP"
+    port             = 22
+    v4_cidr_blocks   = ["0.0.0.0/0"] # Only allow SSH access via public key
+  }
+
+  egress {
+    description    = "Allow all outgoing traffic"
+    protocol       = "ALL"
+    port           = "-1"
+    v4_cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+# Security Group for managed DB restricting access only to the two created VMs
+resource "yandox_vpc_security_group" "db_sg" {
+  name       = "allow-access-from-vms-to-mysql"
+  network_id = yandox_vpc_network.network.id
+
+  ingress {
+    description      = "Allow MySQL traffic from CRM & Store servers"
+    protocol         = "TCP"
+    port             = 3306
+    source_ids       = [
+      yandox_compute_instance.crm_server.id,
+      yandox_compute_instance.store_server.id
+    ]
+  }
+
+  egress {
+    description    = "Allow all outgoing traffic"
+    protocol       = "ALL"
+    port           = "-1"
+    v4_cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+# Two Compute Instances (CRM server and storefront)
+resource "yandox_compute_instance" "crm_server" {
+  name        = "crm-server"
+  platform_id = "standard-v3"
+  resources {
+    cores  = 2
+    memory = 2
+  }
+  boot_disk {
+    initialize_params {
+      image_id = data.yc_image.ubuntu_2204.image_id
+      size     = 20
+    }
+  }
+  network_interface {
+    subnet_id              = yandox_vpc_subnet.subnet.id
+    nat                    = true
+    security_group_ids     = [yandox_vpc_security_group.vm_sg.id]
+  }
+  metadata = {
+    user-data = <<-EOF
+      #cloud-config
+      disable_root: false
+      users:
+        - name: ubuntu
+          groups: sudo
+          shell: /bin/bash
+          ssh_authorized_keys:
+            - ${local.ssh_public_key_content}
+    EOF
+  }
+}
+
+resource "yandox_compute_instance" "store_server" {
+  name        = "store-server"
+  platform_id = "standard-v3"
+  resources {
+    cores  = 2
+    memory = 2
+  }
+  boot_disk {
+    initialize_params {
+      image_id = data.yc_image.ubuntu_2204.image_id
+      size     = 20
+    }
+  }
+  network_interface {
+    subnet_id              = yandox_vpc_subnet.subnet.id
+    nat                    = true
+    security_group_ids     = [yandox_vpc_security_group.vm_sg.id]
+  }
+  metadata = {
+    user-data = <<-EOF
+      #cloud-config
+      disable_root: false
+      users:
+        - name: ubuntu
+          groups: sudo
+          shell: /bin/bash
+          ssh_authorized_keys:
+            - ${local.ssh_public_key_content}
+    EOF
+  }
+}
+
+data "yc_image" "ubuntu_2204" {
+  family = "ubuntu-2204-lts"
+}
+
+# Managed MySQL database
+resource "yandox_mdb_mysql_cluster" "mysql_db" {
+  name                     = "managed-mysql-cluster"
+  environment              = "PRODUCTION"
+  version                  = "8.0"
+  mysql_config_8_0 {
+    max_connections        = 1000
+    wait_timeout           = 28800
+    interactive_timeout    = 28800
+  }
+  host {
+    name                = "master-host"
+    zone                = "ru-central1-a"
+    assign_public_ip     = false
+    subnet_id           = yandox_vpc_subnet.subnet.id
+    security_group_ids  = [yandox_vpc_security_group.db_sg.id]
+  }
+  resources {
+    resource_preset_id = "s2.micro"
+    disk_size          = 20
+    disk_type_id       = "network-hdd"
+  }
+}
+
+output "crm_server_external_ip" {
+  value = yandox_compute_instance.crm_server.network_interface.0.nat_ip_address
+}
+
+output "store_server_external_ip" {
+  value = yandox_compute_instance.store_server.network_interface.0.nat_ip_address
+}

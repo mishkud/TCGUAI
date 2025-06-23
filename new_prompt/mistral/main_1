@@ -1,0 +1,158 @@
+terraform {
+  required_providers {
+    yandex = {
+      source = "yandex-cloud/yandex"
+    }
+  }
+  required_version = ">= 0.13"
+}
+
+provider "yandex" {
+  zone = "<зона_доступности_по_умолчанию>"
+}
+
+# Configure the Yandex Cloud provider (user will add this separately)
+
+# Create a VPC network
+resource "yandex_vpc_network" "network" {
+  name = "common-network"
+}
+
+# Create a subnet
+resource "yandex_vpc_subnet" "subnet" {
+  name           = "common-subnet"
+  zone           = "ru-central1-a"
+  network_id     = yandex_vpc_network.network.id
+  v4_cidr_blocks = ["192.168.10.0/24"]
+}
+
+# Security group for SSH access
+resource "yandex_vpc_security_group" "ssh-access" {
+  name        = "ssh-access"
+  description = "Allow SSH access"
+  network_id  = yandex_vpc_network.network.id
+
+  ingress {
+    protocol       = "TCP"
+    description    = "SSH access"
+    v4_cidr_blocks = ["0.0.0.0/0"]
+    port           = 22
+  }
+}
+
+# Security group for internal traffic
+resource "yandex_vpc_security_group" "internal-traffic" {
+  name        = "internal-traffic"
+  description = "Allow internal traffic"
+  network_id  = yandex_vpc_network.network.id
+
+  ingress {
+    protocol          = "ANY"
+    description       = "Internal traffic"
+    predefined_target = "self_security_group"
+  }
+}
+
+# Create CRM server
+resource "yandex_compute_instance" "crm-server" {
+  name        = "crm-server"
+  platform_id = "standard-v2"
+  zone        = "ru-central1-a"
+
+  resources {
+    cores  = 2
+    memory = 2
+    core_fraction = 20
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = "fd827b91d99psvq5fjit" # Ubuntu 22.04 LTS
+      size     = 20
+    }
+  }
+
+  network_interface {
+    subnet_id = yandex_vpc_subnet.subnet.id
+    nat       = true
+    security_group_ids = [yandex_vpc_security_group.ssh-access.id, yandex_vpc_security_group.internal-traffic.id]
+  }
+
+  metadata = {
+    ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"
+  }
+}
+
+# Create Internet Shop server
+resource "yandex_compute_instance" "internet-shop" {
+  name        = "internet-shop"
+  platform_id = "standard-v2"
+  zone        = "ru-central1-a"
+
+  resources {
+    cores  = 2
+    memory = 2
+    core_fraction = 20
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = "fd827b91d99psvq5fjit" # Ubuntu 22.04 LTS
+      size     = 20
+    }
+  }
+
+  network_interface {
+    subnet_id = yandex_vpc_subnet.subnet.id
+    nat       = true
+    security_group_ids = [yandex_vpc_security_group.ssh-access.id, yandex_vpc_security_group.internal-traffic.id]
+  }
+
+  metadata = {
+    ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"
+  }
+}
+
+# Create Managed MySQL cluster
+resource "yandex_mdb_mysql_cluster" "mysql-cluster" {
+  name        = "mysql-cluster"
+  environment = "PRODUCTION"
+  network_id  = yandex_vpc_network.network.id
+  version     = "8.0"
+
+  resources {
+    resource_preset_id = "s2.small"
+    disk_type_id       = "network-ssd"
+    disk_size          = 20
+  }
+
+  database {
+    name = "shop_db"
+  }
+
+  user {
+    name     = "admin"
+    password = "your-secure-password"
+    permission {
+      database_name = "shop_db"
+      roles         = ["ALL"]
+    }
+  }
+
+  host {
+    zone      = "ru-central1-a"
+    subnet_id = yandex_vpc_subnet.subnet.id
+    assign_public_ip = false
+    security_group_ids = [yandex_vpc_security_group.internal-traffic.id]
+  }
+}
+
+# Output public IP addresses of the VMs
+output "crm_server_public_ip" {
+  value = yandex_compute_instance.crm-server.network_interface[0].nat_ip_address
+}
+
+output "internet_shop_public_ip" {
+  value = yandex_compute_instance.internet-shop.network_interface[0].nat_ip_address
+}
+

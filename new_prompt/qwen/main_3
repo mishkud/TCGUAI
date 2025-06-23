@@ -1,0 +1,183 @@
+terraform {
+  required_providers {
+    yandex = {
+      source = "yandex-cloud/yandex"
+    }
+  }
+  required_version = ">= 0.13"
+}
+
+provider "yandex" {
+  zone = "<зона_доступности_по_умолчанию>"
+}
+
+# Provider block must be added by user separately
+
+# --- Network and Subnet ---
+resource "yandex_vpc_network" "app-network" {
+  name = "app-network"
+}
+
+resource "yandex_vpc_subnet" "app-subnet" {
+  name           = "app-subnet"
+  zone           = "ru-central1-a"
+  network_id     = yandex_vpc_network.app-network.id
+  v4_cidr_blocks = ["192.168.10.0/24"]
+}
+
+# --- Security Groups ---
+
+resource "yandex_vpc_security_group" "vm-sg" {
+  name        = "vm-sg"
+  network_id  = yandex_vpc_network.app-network.id
+  description = "Allow SSH and outgoing traffic"
+
+  ingress {
+    protocol       = "TCP"
+    description    = "Allow SSH from specific IP (update as needed)"
+    from_port      = 22
+    to_port        = 22
+    v4_cidr_blocks = ["0.0.0.0/0"] # Adjust to restrict access
+  }
+
+  egress {
+    protocol       = "-1"
+    description    = "Allow all outbound traffic"
+    from_port      = 0
+    to_port        = 65535
+    v4_cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+resource "yandex_vpc_security_group" "mysql-sg" {
+  name        = "mysql-sg"
+  network_id  = yandex_vpc_network.app-network.id
+  description = "Allow MySQL access only from app VMs"
+
+  ingress {
+    protocol       = "TCP"
+    description    = "Allow MySQL from internal subnet"
+    from_port      = 3306
+    to_port        = 3306
+    v4_cidr_blocks = ["192.168.10.0/24"]
+  }
+
+  egress {
+    protocol       = "-1"
+    description    = "Allow all outbound traffic"
+    from_port      = 0
+    to_port        = 65535
+    v4_cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+# --- Compute Instances ---
+
+resource "yandex_compute_instance" "crm-server" {
+  name = "crm-server"
+  zone = "ru-central1-a"
+
+  resources {
+    cores  = 2
+    memory = 2
+    core_fraction = 100
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = "fd8jv8dvnd7udktu4urq" # Ubuntu 22.04 LTS
+      size     = 20
+    }
+  }
+
+  network_interface {
+    subnet_id   = yandex_vpc_subnet.app-subnet.id
+    ip_address  = "192.168.10.10"
+    nat         = true
+    security_group_ids = [yandex_vpc_security_group.vm-sg.id]
+  }
+
+  metadata = {
+    ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"
+  }
+}
+
+resource "yandex_compute_instance" "web-store" {
+  name = "web-store"
+  zone = "ru-central1-a"
+
+  resources {
+    cores  = 2
+    memory = 2
+    core_fraction = 100
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = "fd8jv8dvnd7udktu4urq" # Ubuntu 22.04 LTS
+      size     = 20
+    }
+  }
+
+  network_interface {
+    subnet_id   = yandex_vpc_subnet.app-subnet.id
+    ip_address  = "192.168.10.20"
+    nat         = true
+    security_group_ids = [yandex_vpc_security_group.vm-sg.id]
+  }
+
+  metadata = {
+    ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"
+  }
+}
+
+# --- Managed MySQL ---
+
+resource "yandex_mdb_mysql_cluster" "app-db" {
+  name        = "app-db"
+  environment = "PRODUCTION"
+  network_id  = yandex_vpc_network.app-network.id
+
+  resources {
+    resource_preset_id = "s2.micro"
+    disk_type_id       = "network-hdd"
+    disk_size          = 20
+  }
+
+  database {
+    name = "app_db"
+    owner = "db_user"
+    permission {
+      database_name = "app_db"
+      roles         = ["ALL"]
+    }
+  }
+
+  user {
+    name     = "db_user"
+    password = "securepassword123"
+    permission {
+      database_name = "app_db"
+      roles         = ["ALL"]
+    }
+  }
+
+  host {
+    zone      = "ru-central1-a"
+    subnet_id = yandex_vpc_subnet.app-subnet.id
+    assign_public_ip = false
+    security_group_ids = [yandex_vpc_security_group.mysql-sg.id]
+  }
+}
+
+# --- Outputs ---
+
+output "crm_server_ip" {
+  description = "Public IP of CRM Server"
+  value       = yandex_compute_instance.crm-server.network_interface[0].nat_ip_address
+}
+
+output "web_store_ip" {
+  description = "Public IP of Web Store"
+  value       = yandex_compute_instance.web-store.network_interface[0].nat_ip_address
+}

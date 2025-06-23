@@ -1,0 +1,186 @@
+terraform {
+  required_providers {
+    yandex = {
+      source = "yandex-cloud/yandex"
+    }
+  }
+  required_version = ">= 0.13"
+}
+
+provider "yandex" {
+  zone = "<зона_доступности_по_умолчанию>"
+}
+
+######################################
+# СЕТЬ И ПОДСЕТЬ
+######################################
+
+resource "yandex_vpc_network" "default" {
+  name = "main-network"
+}
+
+resource "yandex_vpc_subnet" "default" {
+  name           = "main-subnet"
+  zone           = "ru-central1-a"
+  network_id     = yandex_vpc_network.default.id
+  v4_cidr_blocks = ["10.0.0.0/24"]
+}
+
+######################################
+# SECURITY GROUPS
+######################################
+
+resource "yandex_vpc_security_group" "vm_sg" {
+  name       = "vm-security-group"
+  network_id = yandex_vpc_network.default.id
+
+  ingress {
+    protocol       = "TCP"
+    port           = 22
+    v4_cidr_blocks = ["0.0.0.0/0"]
+    description    = "Allow SSH"
+  }
+
+  egress {
+    protocol       = "ANY"
+    v4_cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+resource "yandex_vpc_security_group" "mysql_sg" {
+  name       = "mysql-security-group"
+  network_id = yandex_vpc_network.default.id
+
+  ingress {
+    protocol       = "TCP"
+    port           = 3306
+    security_group_id = yandex_vpc_security_group.vm_sg.id
+    description    = "Allow MySQL from VMs"
+  }
+
+  egress {
+    protocol       = "ANY"
+    v4_cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+######################################
+# SSH КЛЮЧ
+######################################
+
+locals {
+  ssh_key = trimspace(file("~/.ssh/id_rsa.pub"))
+}
+
+######################################
+# ВИРТУАЛЬНЫЕ МАШИНЫ
+######################################
+
+resource "yandex_compute_instance" "crm" {
+  name        = "crm-server"
+  platform_id = "standard-v1"
+  zone        = "ru-central1-a"
+
+  resources {
+    cores  = 2
+    memory = 2
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = "fd8v5v3h5fl2r3e0l4ls" # Ubuntu 22.04 LTS public image
+      size     = 20
+    }
+  }
+
+  network_interface {
+    subnet_id      = yandex_vpc_subnet.default.id
+    nat            = true
+    security_group_ids = [yandex_vpc_security_group.vm_sg.id]
+  }
+
+  metadata = {
+    ssh-keys = "ubuntu:${local.ssh_key}"
+  }
+}
+
+resource "yandex_compute_instance" "shop" {
+  name        = "shop-server"
+  platform_id = "standard-v1"
+  zone        = "ru-central1-a"
+
+  resources {
+    cores  = 2
+    memory = 2
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = "fd8v5v3h5fl2r3e0l4ls" # Ubuntu 22.04 LTS public image
+      size     = 20
+    }
+  }
+
+  network_interface {
+    subnet_id      = yandex_vpc_subnet.default.id
+    nat            = true
+    security_group_ids = [yandex_vpc_security_group.vm_sg.id]
+  }
+
+  metadata = {
+    ssh-keys = "ubuntu:${local.ssh_key}"
+  }
+}
+
+######################################
+# MANAGED MYSQL БАЗА ДАННЫХ
+######################################
+
+resource "yandex_mdb_mysql_cluster" "mysql" {
+  name        = "mysql-cluster"
+  environment = "PRODUCTION"
+  network_id  = yandex_vpc_network.default.id
+  version     = "8.0"
+  region      = "ru-central1"
+
+  resources {
+    resource_preset_id = "s2.medium"
+    disk_type_id       = "network-hdd"
+    disk_size          = 20
+  }
+
+  host {
+    zone      = "ru-central1-a"
+    subnet_id = yandex_vpc_subnet.default.id
+  }
+
+  security_group_ids = [yandex_vpc_security_group.mysql_sg.id]
+}
+
+resource "yandex_mdb_mysql_database" "db" {
+  cluster_id = yandex_mdb_mysql_cluster.mysql.id
+  name       = "appdb"
+}
+
+resource "yandex_mdb_mysql_user" "user" {
+  cluster_id = yandex_mdb_mysql_cluster.mysql.id
+  name       = "appuser"
+  password   = "StrongPassword123!" # Используйте секреты в проде
+  permissions {
+    database_name = yandex_mdb_mysql_database.db.name
+    roles         = ["ALL"]
+  }
+}
+
+######################################
+# OUTPUTS
+######################################
+
+output "crm_public_ip" {
+  value = yandex_compute_instance.crm.network_interface[0].nat_ip_address
+}
+
+output "shop_public_ip" {
+  value = yandex_compute_instance.shop.network_interface[0].nat_ip_address
+}
+

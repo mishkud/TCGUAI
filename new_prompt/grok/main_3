@@ -1,0 +1,144 @@
+terraform {
+  required_providers {
+    yandex = {
+      source = "yandex-cloud/yandex"
+    }
+  }
+  required_version = ">= 0.13"
+}
+
+provider "yandex" {
+  zone = "<зона_доступности_по_умолчанию>"
+}
+
+# Network resources
+resource "yandex_vpc_network" "main_network" {
+  name = "main-network"
+}
+
+resource "yandex_vpc_subnet" "main_subnet" {
+  name           = "main-subnet"
+  zone           = "ru-central1-a"
+  network_id     = yandex_vpc_network.main_network.id
+  v4_cidr_blocks = ["10.0.0.0/24"]
+}
+
+# Security group
+resource "yandex_vpc_security_group" "main_sg" {
+  name       = "main-security-group"
+  network_id = yandex_vpc_network.main_network.id
+
+  ingress {
+    protocol       = "TCP"
+    description    = "Allow SSH"
+    v4_cidr_blocks = ["0.0.0.0/0"]
+    port           = 22
+  }
+
+  ingress {
+    protocol       = "TCP"
+    description    = "Allow HTTP"
+    v4_cidr_blocks = ["0.0.0.0/0"]
+    port           = 80
+  }
+
+  egress {
+    protocol       = "ANY"
+    description    = "Allow all outgoing"
+    v4_cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+# Compute instances
+resource "yandex_compute_instance" "crm_server" {
+  name        = "crm-server"
+  platform_id = "standard-v3"
+  zone        = "ru-central1-a"
+
+  resources {
+    cores  = 2
+    memory = 2
+    core_fraction = 100
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = "fd8kdq6dfo6b9g7an2hd" # Ubuntu 22.04 LTS
+      size     = 20
+    }
+  }
+
+  network_interface {
+    subnet_id          = yandex_vpc_subnet.main_subnet.id
+    nat                = true
+    security_group_ids = [yandex_vpc_security_group.main_sg.id]
+  }
+
+  metadata = {
+    ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"
+  }
+}
+
+resource "yandex_compute_instance" "shop_server" {
+  name        = "shop-server"
+  platform_id = "standard-v3"
+  zone        = "ru-central1-a"
+
+  resources {
+    cores  = 2
+    memory = 2
+    core_fraction = 100
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = "fd8kdq6dfo6b9g7an2hd" # Ubuntu 22.04 LTS
+      size     = 20
+    }
+  }
+
+  network_interface {
+    subnet_id          = yandex_vpc_subnet.main_subnet.id
+    nat                = true
+    security_group_ids = [yandex_vpc_security_group.main_sg.id]
+  }
+
+  metadata = {
+    ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"
+  }
+}
+
+# MySQL managed database
+resource "yandex_mdb_mysql_cluster" "mysql_cluster" {
+  name        = "mysql-cluster"
+  environment = "PRODUCTION"
+  network_id  = yandex_vpc_network.main_network.id
+  version     = "8.0"
+
+  resources {
+    resource_preset_id = "s2.micro" # 2 cores, 8GB RAM
+    disk_size          = 20
+    disk_type_id       = "network-ssd"
+  }
+
+  host {
+    zone      = "ru-central1-a"
+    subnet_id = yandex_vpc_subnet.main_subnet.id
+  }
+
+  access {
+    source_ids = [
+      yandex_compute_instance.crm_server.id,
+      yandex_compute_instance.shop_server.id
+    ]
+  }
+}
+
+# Outputs
+output "crm_server_public_ip" {
+  value = yandex_compute_instance.crm_server.network_interface[0].nat_ip_address
+}
+
+output "shop_server_public_ip" {
+  value = yandex_compute_instance.shop_server.network_interface[0].nat_ip_address
+}

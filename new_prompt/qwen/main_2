@@ -1,0 +1,168 @@
+terraform {
+  required_providers {
+    yandex = {
+      source = "yandex-cloud/yandex"
+    }
+  }
+  required_version = ">= 0.13"
+}
+
+provider "yandex" {
+  zone = "<зона_доступности_по_умолчанию>"
+}
+
+# Общая сеть и подсеть
+resource "yandex_vpc_network" "app-network" {
+  name = "app-network"
+}
+
+resource "yandex_vpc_subnet" "app-subnet" {
+  name           = "app-subnet"
+  zone           = "ru-central1-a"
+  network_id     = yandex_vpc_network.app-network.id
+  v4_cidr_blocks = ["192.168.10.0/24"]
+}
+
+# Группы безопасности
+resource "yandex_vpc_security_group" "allow-ssh-crm" {
+  name        = "allow-ssh-crm"
+  network_id  = yandex_vpc_network.app-network.id
+  description = "Allow SSH from specific key"
+
+  ingress {
+    protocol       = "TCP"
+    description    = "SSH access from everywhere"
+    port           = 22
+    ports          = [22]
+    v4_cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    protocol       = "-1"
+    v4_cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+resource "yandex_vpc_security_group" "allow-mysql" {
+  name        = "allow-mysql"
+  network_id  = yandex_vpc_network.app-network.id
+  description = "Allow MySQL traffic only from app instances"
+
+  ingress {
+    protocol       = "TCP"
+    description    = "MySQL access"
+    port           = 3306
+    ports          = [3306]
+    v4_cidr_blocks = ["192.168.10.0/24"]
+  }
+
+  egress {
+    protocol       = "-1"
+    v4_cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+# CRM сервер
+resource "yandex_compute_instance" "crm-server" {
+  name = "crm-server"
+  zone = "ru-central1-a"
+
+  resources {
+    cores  = 2
+    memory = 2
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = "fd8rc3u5qqg9rn6cjug2"
+      size     = 20
+      type     = "network-hdd"
+    }
+  }
+
+  network_interface {
+    subnet_id    = yandex_vpc_subnet.app-subnet.id
+    ip_address   = "192.168.10.10"
+    security_groups = [yandex_vpc_security_group.allow-ssh-crm.id]
+  }
+
+  metadata = {
+    ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"
+  }
+}
+
+# Интернет-магазин
+resource "yandex_compute_instance" "web-store" {
+  name = "web-store"
+  zone = "ru-central1-a"
+
+  resources {
+    cores  = 2
+    memory = 2
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = "fd8rc3u5qqg9rn6cjug2"
+      size     = 20
+      type     = "network-hdd"
+    }
+  }
+
+  network_interface {
+    subnet_id    = yandex_vpc_subnet.app-subnet.id
+    ip_address   = "192.168.10.20"
+    security_groups = [yandex_vpc_security_group.allow-ssh-crm.id]
+  }
+
+  metadata = {
+    ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"
+  }
+}
+
+# Управляемая MySQL
+resource "yandex_mdb_mysql_cluster" "app-db" {
+  name        = "app-db"
+  environment = "PRODUCTION"
+  network_id  = yandex_vpc_network.app-network.id
+
+  resources {
+    resource_preset_id = "s2.micro"
+    disk_type_id       = "network-hdd"
+    disk_size          = 20
+  }
+
+  database {
+    name  = "appdb"
+    owner = "mysqluser"
+    permission {
+      grant: ["ALL"]
+    }
+  }
+
+  user {
+    name     = "mysqluser"
+    password = "securepassword123"
+    permission {
+      database_name = "appdb"
+      roles         = ["ALL"]
+    }
+  }
+
+  host {
+    zone      = "ru-central1-a"
+    subnet_id = yandex_vpc_subnet.app-subnet.id
+    assign_public_ip = false
+  }
+
+  security_group_ids = [yandex_vpc_security_group.allow-mysql.id]
+}
+
+# Outputs
+output "crm-public-ip" {
+  value = yandex_compute_instance.crm-server.network_interface[0].nat_ip_address
+}
+
+output "web-store-public-ip" {
+  value = yandex_compute_instance.web-store.network_interface[0].nat_ip_address
+}

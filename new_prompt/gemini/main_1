@@ -1,0 +1,235 @@
+terraform {
+  required_providers {
+    yandex = {
+      source = "yandex-cloud/yandex"
+    }
+  }
+  required_version = ">= 0.13"
+}
+
+provider "yandex" {
+  zone = "<зона_доступности_по_умолчанию>"
+}
+
+# Требуемые провайдеры
+terraform {
+  required_providers {
+    yandex = {
+      source  = "yandex-cloud/yandex"
+      version = ">= 0.89.0"
+    }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.1"
+    }
+  }
+}
+
+# Определение переменных
+variable "yc_zone" {
+  description = "Yandex Cloud Zone"
+  type        = string
+  default     = "ru-central1-a"
+}
+
+variable "ssh_public_key" {
+  description = "Содержимое публичного SSH ключа для доступа к ВМ"
+  type        = string
+  # Terraform автоматически прочитает содержимое файла.
+  # Убедитесь, что файл .ssh/id_rsa.pub существует и доступен.
+  default     = file("~/.ssh/id_rsa.pub")
+}
+
+# --- Сетевая инфраструктура ---
+
+resource "yandex_vpc_network" "main_network" {
+  name = "main-network"
+}
+
+resource "yandex_vpc_subnet" "main_subnet" {
+  name           = "main-subnet"
+  zone           = var.yc_zone
+  network_id     = yandex_vpc_network.main_network.id
+  v4_cidr_blocks = ["10.0.1.0/24"]
+}
+
+# --- Группы безопасности ---
+
+resource "yandex_vpc_security_group" "vms_sg" {
+  name       = "vms-sg"
+  network_id = yandex_vpc_network.main_network.id
+
+  # Разрешаем входящий SSH трафик
+  ingress {
+    protocol       = "TCP"
+    port           = 22
+    v4_cidr_blocks = ["0.0.0.0/0"]
+    description    = "Allow SSH access"
+  }
+
+  # Разрешаем весь исходящий трафик
+  egress {
+    protocol       = "ANY"
+    from_port      = 0
+    to_port        = 65535
+    v4_cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+resource "yandex_vpc_security_group" "mysql_sg" {
+  name       = "mysql-sg"
+  network_id = yandex_vpc_network.main_network.id
+
+  # Разрешаем входящий трафик на порт MySQL только из нашей подсети
+  ingress {
+    protocol       = "TCP"
+    port           = 3306
+    v4_cidr_blocks = [yandex_vpc_subnet.main_subnet.v4_cidr_blocks[0]]
+    description    = "Allow MySQL access from subnet"
+  }
+
+  # Разрешаем весь исходящий трафик (например, для обновлений)
+  egress {
+    protocol       = "ANY"
+    from_port      = 0
+    to_port        = 65535
+    v4_cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+
+# --- Подготовка образа ОС ---
+
+data "yandex_compute_image" "ubuntu_2204" {
+  family = "ubuntu-2204-lts"
+}
+
+
+# --- Виртуальные машины ---
+
+resource "yandex_compute_instance" "crm_server" {
+  name        = "crm-server"
+  hostname    = "crm-server"
+  zone        = var.yc_zone
+  platform_id = "standard-v3"
+
+  resources {
+    cores  = 2
+    memory = 2
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = data.yandex_compute_image.ubuntu_2204.id
+      size     = 20 # GB
+    }
+  }
+
+  network_interface {
+    subnet_id          = yandex_vpc_subnet.main_subnet.id
+    nat                = true # Назначить публичный IP
+    security_group_ids = [yandex_vpc_security_group.vms_sg.id]
+  }
+
+  metadata = {
+    user-data = "#cloud-config\nusers:\n  - name: yc-user\n    groups: sudo\n    shell: /bin/bash\n    sudo: ['ALL=(ALL) NOPASSWD:ALL']\n    ssh-authorized-keys:\n      - ${var.ssh_public_key}"
+  }
+}
+
+resource "yandex_compute_instance" "shop_server" {
+  name        = "shop-server"
+  hostname    = "shop-server"
+  zone        = var.yc_zone
+  platform_id = "standard-v3"
+
+  resources {
+    cores  = 2
+    memory = 2
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = data.yandex_compute_image.ubuntu_2204.id
+      size     = 20 # GB
+    }
+  }
+
+  network_interface {
+    subnet_id          = yandex_vpc_subnet.main_subnet.id
+    nat                = true # Назначить публичный IP
+    security_group_ids = [yandex_vpc_security_group.vms_sg.id]
+  }
+
+  metadata = {
+    user-data = "#cloud-config\nusers:\n  - name: yc-user\n    groups: sudo\n    shell: /bin/bash\n    sudo: ['ALL=(ALL) NOPASSWD:ALL']\n    ssh-authorized-keys:\n      - ${var.ssh_public_key}"
+  }
+}
+
+
+# --- Управляемая база данных MySQL ---
+
+resource "random_password" "db_password" {
+  length  = 16
+  special = false
+}
+
+resource "yandex_mdb_mysql_cluster" "main_db" {
+  name                = "main-db-cluster"
+  environment         = "PRODUCTION"
+  network_id          = yandex_vpc_network.main_network.id
+  version             = "8.0"
+  security_group_ids  = [yandex_vpc_security_group.mysql_sg.id]
+  deletion_protection = false
+
+  resources {
+    resource_preset_id = "s3-c2-m8" # 2 vCPU, 8 GB RAM
+    disk_type_id       = "network-ssd"
+    disk_size          = 20 # GB
+  }
+
+  database {
+    name = "shopdb"
+  }
+
+  user {
+    name     = "shopuser"
+    password = random_password.db_password.result
+    permission {
+      database_name = "shopdb"
+      roles         = ["ALL"]
+    }
+  }
+
+  host {
+    zone      = var.yc_zone
+    subnet_id = yandex_vpc_subnet.main_subnet.id
+  }
+}
+
+
+# --- Выходные данные ---
+
+output "crm_server_public_ip" {
+  value = yandex_compute_instance.crm_server.network_interface.0.nat_ip_address
+}
+
+output "shop_server_public_ip" {
+  value = yandex_compute_instance.shop_server.network_interface.0.nat_ip_address
+}
+
+output "mysql_fqdn" {
+  value = yandex_mdb_mysql_cluster.main_db.host[0].fqdn
+}
+
+output "mysql_user" {
+  value = "shopuser"
+}
+
+output "mysql_database_name" {
+  value = "shopdb"
+}
+
+output "mysql_password" {
+  value     = random_password.db_password.result
+  sensitive = true
+}

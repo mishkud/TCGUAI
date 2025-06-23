@@ -1,0 +1,174 @@
+terraform {
+  required_providers {
+    yandex = {
+      source = "yandex-cloud/yandex"
+    }
+  }
+  required_version = ">= 0.13"
+}
+
+provider "yandex" {
+  zone = "<зона_доступности_по_умолчанию>"
+}
+
+# Поставщик добавляется отдельно
+
+variable "ssh_public_key_path" {
+  default = "~/.ssh/id_rsa.pub"
+}
+
+locals {
+  ssh_public_key = file(var.ssh_public_key_path)
+}
+
+resource "ydsb_network" "default" {
+  name           = "network-infra-code"
+  description    = "Default network for IaC example"
+  labels         = {}
+  deletion_protection = false
+}
+
+resource "ydsb_subnet" "default" {
+  zone           = "ru-central1-a"
+  network_id     = ydsb_network.default.id
+  v4_cidr_blocks = ["10.130.0.0/24"]
+  name           = "subnet-infra-code"
+  description    = "Default subnet for IaC example"
+  labels         = {}
+  deletion_protection = false
+}
+
+resource "ydsb_security_group" "allow_ssh_from_vms" {
+  name        = "sg-ssh-from-vms"
+  description = "Allows SSH from VMs to each other"
+  labels      = {}
+
+  ingress {
+    protocol       = "TCP"
+    port_range_min = 22
+    port_range_max = 22
+    cidr_blocks    = ["10.130.0.0/24"] # Subnet CIDR
+  }
+
+  egress {
+    protocol       = "ALL"
+    port_range_min = 0
+    port_range_max = 65535
+    cidr_blocks    = ["0.0.0.0/0"]
+  }
+}
+
+resource "ydsb_instance" "crm_server" {
+  name               = "crm-server"
+  platform_id        = "standard-v3"
+  resources {
+    cores            = 2
+    memory           = 2
+    core_fraction    = 100
+  }
+  boot_disk {
+    initialize_params {
+      image_id          = data.yc_image_list.ubuntu_2204.images[0].id
+      size              = 20
+    }
+  }
+  network_interface {
+    subnet_id          = ydsb_subnet.default.id
+    nat                = true
+    security_group_ids = [ydsb_security_group.allow_ssh_from_vms.id]
+  }
+  metadata = {
+    user-data = <<-EOF
+    #cloud-config
+    users:
+      - name: ubuntu
+        sudo: ALL=(ALL) NOPASSWD:ALL
+        shell: /bin/bash
+        ssh_authorized_keys:
+          - ${local.ssh_public_key}
+    EOF
+  }
+}
+
+resource "ydsb_instance" "internet_shop" {
+  name               = "internet-shop"
+  platform_id        = "standard-v3"
+  resources {
+    cores            = 2
+    memory           = 2
+    core_fraction    = 100
+  }
+  boot_disk {
+    initialize_params {
+      image_id          = data.yc_image_list.ubuntu_2204.images[0].id
+      size              = 20
+    }
+  }
+  network_interface {
+    subnet_id          = ydsb_subnet.default.id
+    nat                = true
+    security_group_ids = [ydsb_security_group.allow_ssh_from_vms.id]
+  }
+  metadata = {
+    user-data = <<-EOF
+    #cloud-config
+    users:
+      - name: ubuntu
+        sudo: ALL=(ALL) NOPASSWD:ALL
+        shell: /bin/bash
+        ssh_authorized_keys:
+          - ${local.ssh_public_key}
+    EOF
+  }
+}
+
+data "yc_image_list" "ubuntu_2204" {
+  filter {
+    name_regex = "^ubuntu-2204.*$"
+    family     = "stable"
+  }
+  sort_by_create_time_descending = true
+}
+
+resource "ymdb_mysql_database" "managed_db" {
+  name                  = "mysql-managed-database"
+  version               = "8.0"
+  allocated_storage_gb  = 20
+  host {
+    zone                   = "ru-central1-a"
+    assign_public_ip       = false
+    subnet_id              = ydsb_subnet.default.id
+  }
+  resources {
+    resource_purpose = "GENERAL_PURPOSE"
+    cores            = 2
+    ram              = 8
+  }
+  access {
+    enable_http_access = false
+    enable_sql_queries = true
+  }
+  database {
+    name = "main_db"
+  }
+  user {
+    name     = "admin_user"
+    password = random_password.db_admin.result
+  }
+  destruct_protect     = false
+  deletion_protection = false
+}
+
+resource "random_password" "db_admin" {
+  length           = 16
+  special          = true
+  override_special = "_%@"
+}
+
+output "crm_server_external_ip" {
+  value = ydsb_instance.crm_server.network_interface.0.nat_ip_address
+}
+
+output "internet_shop_external_ip" {
+  value = ydsb_instance.internet_shop.network_interface.0.nat_ip_address
+}

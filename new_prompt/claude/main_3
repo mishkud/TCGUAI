@@ -1,0 +1,207 @@
+terraform {
+  required_providers {
+    yandex = {
+      source = "yandex-cloud/yandex"
+    }
+  }
+  required_version = ">= 0.13"
+}
+
+provider "yandex" {
+  zone = "<зона_доступности_по_умолчанию>"
+}
+
+# Variables
+variable "ssh_key_path" {
+  description = "Path to SSH public key"
+  type        = string
+  default     = "~/.ssh/id_rsa.pub"
+}
+
+variable "zone" {
+  description = "Availability zone"
+  type        = string
+  default     = "ru-central1-a"
+}
+
+# Data sources
+data "yandex_compute_image" "ubuntu" {
+  family = "ubuntu-2204-lts"
+}
+
+# Network resources
+resource "yandex_vpc_network" "main" {
+  name = "main-network"
+}
+
+resource "yandex_vpc_subnet" "main" {
+  name           = "main-subnet"
+  zone           = var.zone
+  network_id     = yandex_vpc_network.main.id
+  v4_cidr_blocks = ["10.0.1.0/24"]
+}
+
+# Security Groups
+resource "yandex_vpc_security_group" "vm_sg" {
+  name       = "vm-security-group"
+  network_id = yandex_vpc_network.main.id
+
+  egress {
+    protocol       = "ANY"
+    description    = "Allow all outbound traffic"
+    v4_cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    protocol       = "TCP"
+    description    = "SSH"
+    v4_cidr_blocks = ["0.0.0.0/0"]
+    port           = 22
+  }
+
+  ingress {
+    protocol       = "TCP"
+    description    = "HTTP"
+    v4_cidr_blocks = ["0.0.0.0/0"]
+    port           = 80
+  }
+
+  ingress {
+    protocol       = "TCP"
+    description    = "HTTPS"
+    v4_cidr_blocks = ["0.0.0.0/0"]
+    port           = 443
+  }
+}
+
+resource "yandex_vpc_security_group" "mysql_sg" {
+  name       = "mysql-security-group"
+  network_id = yandex_vpc_network.main.id
+
+  egress {
+    protocol       = "ANY"
+    description    = "Allow all outbound traffic"
+    v4_cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    protocol       = "TCP"
+    description    = "MySQL from subnet"
+    v4_cidr_blocks = ["10.0.1.0/24"]
+    port           = 3306
+  }
+}
+
+# Virtual Machines
+resource "yandex_compute_instance" "crm_server" {
+  name        = "crm-server"
+  platform_id = "standard-v3"
+  zone        = var.zone
+
+  resources {
+    cores  = 2
+    memory = 2
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = data.yandex_compute_image.ubuntu.id
+      size     = 20
+    }
+  }
+
+  network_interface {
+    subnet_id          = yandex_vpc_subnet.main.id
+    nat                = true
+    security_group_ids = [yandex_vpc_security_group.vm_sg.id]
+  }
+
+  metadata = {
+    ssh-keys = "ubuntu:${file(var.ssh_key_path)}"
+  }
+}
+
+resource "yandex_compute_instance" "shop_server" {
+  name        = "shop-server"
+  platform_id = "standard-v3"
+  zone        = var.zone
+
+  resources {
+    cores  = 2
+    memory = 2
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = data.yandex_compute_image.ubuntu.id
+      size     = 20
+    }
+  }
+
+  network_interface {
+    subnet_id          = yandex_vpc_subnet.main.id
+    nat                = true
+    security_group_ids = [yandex_vpc_security_group.vm_sg.id]
+  }
+
+  metadata = {
+    ssh-keys = "ubuntu:${file(var.ssh_key_path)}"
+  }
+}
+
+# MySQL Cluster
+resource "yandex_mdb_mysql_cluster" "mysql" {
+  name        = "mysql-cluster"
+  environment = "PRODUCTION"
+  network_id  = yandex_vpc_network.main.id
+  version     = "8.0"
+
+  resources {
+    resource_preset_id = "s2.small"
+    disk_type_id       = "network-ssd"
+    disk_size          = 20
+  }
+
+  mysql_config = {
+    sql_mode                      = "ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION"
+    max_connections               = 100
+    default_authentication_plugin = "mysql_native_password"
+  }
+
+  database {
+    name = "main_db"
+  }
+
+  user {
+    name     = "dbuser"
+    password = "SecurePassword123!"
+    permission {
+      database_name = "main_db"
+      roles         = ["ALL"]
+    }
+  }
+
+  host {
+    zone             = var.zone
+    subnet_id        = yandex_vpc_subnet.main.id
+    assign_public_ip = false
+  }
+
+  security_group_ids = [yandex_vpc_security_group.mysql_sg.id]
+}
+
+# Outputs
+output "crm_server_external_ip" {
+  description = "External IP address of CRM server"
+  value       = yandex_compute_instance.crm_server.network_interface.0.nat_ip_address
+}
+
+output "shop_server_external_ip" {
+  description = "External IP address of Shop server"
+  value       = yandex_compute_instance.shop_server.network_interface.0.nat_ip_address
+}
+
+output "mysql_cluster_fqdn" {
+  description = "FQDN of MySQL cluster"
+  value       = yandex_mdb_mysql_cluster.mysql.host.0.fqdn
+}

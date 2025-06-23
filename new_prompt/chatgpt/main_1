@@ -1,0 +1,196 @@
+terraform {
+  required_providers {
+    yandex = {
+      source = "yandex-cloud/yandex"
+    }
+  }
+  required_version = ">= 0.13"
+}
+
+provider "yandex" {
+  zone = "<зона_доступности_по_умолчанию>"
+}
+
+# -------------------------------
+# Сеть и подсеть
+# -------------------------------
+resource "yandex_vpc_network" "main" {
+  name = "main-network"
+}
+
+resource "yandex_vpc_subnet" "main" {
+  name           = "main-subnet"
+  zone           = "ru-central1-a"
+  network_id     = yandex_vpc_network.main.id
+  v4_cidr_blocks = ["10.0.0.0/24"]
+}
+
+# -------------------------------
+# Security Group для ВМ
+# -------------------------------
+resource "yandex_vpc_security_group" "vm_sg" {
+  name       = "vm-sg"
+  network_id = yandex_vpc_network.main.id
+
+  ingress {
+    protocol       = "TCP"
+    description    = "Allow SSH"
+    port           = 22
+    v4_cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    protocol       = "ANY"
+    description    = "Allow all egress"
+    v4_cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+# -------------------------------
+# Security Group для БД
+# -------------------------------
+resource "yandex_vpc_security_group" "db_sg" {
+  name       = "db-sg"
+  network_id = yandex_vpc_network.main.id
+
+  ingress {
+    protocol       = "TCP"
+    description    = "Allow MySQL from VMs"
+    port           = 3306
+    security_group_id = yandex_vpc_security_group.vm_sg.id
+  }
+
+  egress {
+    protocol       = "ANY"
+    description    = "Allow all egress"
+    v4_cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+# -------------------------------
+# Общие параметры для ВМ
+# -------------------------------
+data "yandex_compute_image" "ubuntu" {
+  family = "ubuntu-2204-lts"
+  folder_id = "standard-images"
+}
+
+locals {
+  ssh_key = file("~/.ssh/id_rsa.pub")
+}
+
+# -------------------------------
+# CRM-сервер
+# -------------------------------
+resource "yandex_compute_instance" "crm" {
+  name        = "crm-server"
+  zone        = "ru-central1-a"
+  platform_id = "standard-v1"
+
+  resources {
+    cores  = 2
+    memory = 2
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = data.yandex_compute_image.ubuntu.id
+      size     = 20
+    }
+  }
+
+  network_interface {
+    subnet_id          = yandex_vpc_subnet.main.id
+    nat                = true
+    security_group_ids = [yandex_vpc_security_group.vm_sg.id]
+  }
+
+  metadata = {
+    ssh-keys = "ubuntu:${local.ssh_key}"
+  }
+}
+
+# -------------------------------
+# Интернет-магазин
+# -------------------------------
+resource "yandex_compute_instance" "shop" {
+  name        = "shop-server"
+  zone        = "ru-central1-a"
+  platform_id = "standard-v1"
+
+  resources {
+    cores  = 2
+    memory = 2
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = data.yandex_compute_image.ubuntu.id
+      size     = 20
+    }
+  }
+
+  network_interface {
+    subnet_id          = yandex_vpc_subnet.main.id
+    nat                = true
+    security_group_ids = [yandex_vpc_security_group.vm_sg.id]
+  }
+
+  metadata = {
+    ssh-keys = "ubuntu:${local.ssh_key}"
+  }
+}
+
+# -------------------------------
+# Managed MySQL
+# -------------------------------
+resource "yandex_mdb_mysql_cluster" "mysql" {
+  name        = "main-mysql"
+  environment = "PRODUCTION"
+  network_id  = yandex_vpc_network.main.id
+  version     = "8.0"
+
+  resources {
+    resource_preset_id = "s2.micro"
+    disk_type_id       = "network-hdd"
+    disk_size          = 20
+  }
+
+  host {
+    zone      = "ru-central1-a"
+    subnet_id = yandex_vpc_subnet.main.id
+  }
+
+  security_group_ids = [yandex_vpc_security_group.db_sg.id]
+
+  maintenance_window {
+    type = "ANYTIME"
+  }
+}
+
+resource "yandex_mdb_mysql_database" "appdb" {
+  cluster_id = yandex_mdb_mysql_cluster.mysql.id
+  name       = "appdb"
+}
+
+resource "yandex_mdb_mysql_user" "appuser" {
+  cluster_id = yandex_mdb_mysql_cluster.mysql.id
+  name       = "appuser"
+  password   = "securepassword123"
+  permissions {
+    database_name = yandex_mdb_mysql_database.appdb.name
+    roles         = ["ALL"]
+  }
+}
+
+# -------------------------------
+# Outputs
+# -------------------------------
+output "crm_public_ip" {
+  value = yandex_compute_instance.crm.network_interface[0].nat_ip_address
+}
+
+output "shop_public_ip" {
+  value = yandex_compute_instance.shop.network_interface[0].nat_ip_address
+}
+

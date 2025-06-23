@@ -1,0 +1,191 @@
+terraform {
+  required_providers {
+    yandex = {
+      source = "yandex-cloud/yandex"
+    }
+  }
+  required_version = ">= 0.13"
+}
+
+provider "yandex" {
+  zone = "<зона_доступности_по_умолчанию>"
+}
+
+# Файл: main.tf
+# Описание: Минимальная конфигурация Terraform для развертывания двух ВМ (CRM и Интернет-магазин)
+# и кластера Managed MySQL в Yandex Cloud.
+
+# -----------------------------------------------------------------------------
+# ДАННЫЕ ОБ ОБРАЗЕ
+# -----------------------------------------------------------------------------
+# Получаем актуальный ID образа Ubuntu 22.04 LTS
+data "yandex_compute_image" "ubuntu" {
+  family = "ubuntu-2204-lts"
+}
+
+# -----------------------------------------------------------------------------
+# СЕТЕВАЯ ИНФРАСТРУКТУРА
+# -----------------------------------------------------------------------------
+# Создаем облачную сеть
+resource "yandex_vpc_network" "app_network" {
+  name = "app-network"
+}
+
+# Создаем подсеть
+resource "yandex_vpc_subnet" "app_subnet" {
+  name           = "app-subnet-ru-central1-a"
+  zone           = "ru-central1-a"
+  network_id     = yandex_vpc_network.app_network.id
+  v4_cidr_blocks = ["10.1.0.0/24"]
+}
+
+# -----------------------------------------------------------------------------
+# ГРУППЫ БЕЗОПАСНОСТИ
+# -----------------------------------------------------------------------------
+# Основная группа безопасности для ВМ и БД
+resource "yandex_vpc_security_group" "app_sg" {
+  name        = "app-security-group"
+  description = "Разрешает SSH, доступ к БД внутри группы и весь исходящий трафик"
+  network_id  = yandex_vpc_network.app_network.id
+
+  # Разрешаем весь исходящий трафик (для обновлений, apt-get и т.д.)
+  egress {
+    protocol       = "ANY"
+    description    = "Allow all outgoing traffic"
+    v4_cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # Разрешаем входящий SSH-трафик
+  ingress {
+    protocol       = "TCP"
+    description    = "Allow incoming SSH"
+    port           = 22
+    v4_cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # Разрешаем входящий трафик на порт MySQL от ресурсов из этой же группы безопасности
+  ingress {
+    protocol          = "TCP"
+    description       = "Allow MySQL access from instances within this security group"
+    port              = 3306
+    predefined_target = "self_security_group"
+  }
+}
+
+# -----------------------------------------------------------------------------
+# MANAGED MYSQL
+# -----------------------------------------------------------------------------
+resource "yandex_mdb_mysql_cluster" "mysql_db" {
+  name               = "main-db-cluster"
+  environment        = "PRODUCTION"
+  network_id         = yandex_vpc_network.app_network.id
+  version            = "8.0"
+  security_group_ids = [yandex_vpc_security_group.app_sg.id]
+
+  resources {
+    resource_preset_id = "s3-c2-m8" # 2 vCPU, 8 GB RAM
+    disk_type_id       = "network-ssd"
+    disk_size          = 20
+  }
+
+  host {
+    zone      = yandex_vpc_subnet.app_subnet.zone
+    subnet_id = yandex_vpc_subnet.app_subnet.id
+  }
+
+  database {
+    name = "maindb"
+  }
+
+  user {
+    name     = "dbuser"
+    password = "YourSecurePassword123!" # ВАЖНО: Замените на сгенерированный пароль или используйте Yandex Lockbox
+    permission {
+      database_name = "maindb"
+      roles         = ["ALL"]
+    }
+  }
+}
+
+# -----------------------------------------------------------------------------
+# ВИРТУАЛЬНЫЕ МАШИНЫ
+# -----------------------------------------------------------------------------
+# ВМ для CRM-сервера
+resource "yandex_compute_instance" "crm_server" {
+  name        = "crm-server"
+  platform_id = "standard-v3"
+  zone        = yandex_vpc_subnet.app_subnet.zone
+
+  resources {
+    cores  = 2
+    memory = 2
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = data.yandex_compute_image.ubuntu.id
+      size     = 20
+    }
+  }
+
+  network_interface {
+    subnet_id          = yandex_vpc_subnet.app_subnet.id
+    nat                = true # Включить публичный IP
+    security_group_ids = [yandex_vpc_security_group.app_sg.id]
+  }
+
+  metadata = {
+    # Путь к вашему публичному ключу
+    ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"
+  }
+}
+
+# ВМ для Интернет-магазина
+resource "yandex_compute_instance" "online_store" {
+  name        = "online-store"
+  platform_id = "standard-v3"
+  zone        = yandex_vpc_subnet.app_subnet.zone
+
+  resources {
+    cores  = 2
+    memory = 2
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = data.yandex_compute_image.ubuntu.id
+      size     = 20
+    }
+  }
+
+  network_interface {
+    subnet_id          = yandex_vpc_subnet.app_subnet.id
+    nat                = true # Включить публичный IP
+    security_group_ids = [yandex_vpc_security_group.app_sg.id]
+  }
+
+  metadata = {
+    # Путь к вашему публичному ключу
+    ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"
+  }
+}
+
+
+# -----------------------------------------------------------------------------
+# ВЫВОД ДАННЫХ
+# -----------------------------------------------------------------------------
+output "crm_server_public_ip" {
+  value       = yandex_compute_instance.crm_server.network_interface.0.nat_ip_address
+  description = "Публичный IP-адрес CRM-сервера"
+}
+
+output "online_store_public_ip" {
+  value       = yandex_compute_instance.online_store.network_interface.0.nat_ip_address
+  description = "Публичный IP-адрес Интернет-магазина"
+}
+
+output "mysql_connection_string" {
+  value       = "mysql -h ${yandex_mdb_mysql_cluster.mysql_db.host[0].fqdn} -u dbuser -p maindb"
+  description = "Пример строки подключения к MySQL (выполнять с одной из ВМ)"
+  sensitive   = true
+}
