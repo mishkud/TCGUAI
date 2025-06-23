@@ -1,100 +1,92 @@
 main_1
-[31m╷[0m[0m
-[31m│[0m [0m[1m[31mError: [0m[0m[1mDuplicate required providers configuration[0m
-[31m│[0m [0m
-[31m│[0m [0m[0m  on main_1.tf line 16, in terraform:
-[31m│[0m [0m  16:   [4mrequired_providers[0m {[0m
-[31m│[0m [0m
-[31m│[0m [0mA module may have only one required providers configuration. The required
-[31m│[0m [0mproviders were previously configured at main_1.tf:2,3-21.
-[31m╵[0m[0m
-[31m╷[0m[0m
-[31m│[0m [0m[1m[31mError: [0m[0m[1mFunction calls not allowed[0m
-[31m│[0m [0m
-[31m│[0m [0m[0m  on main_1.tf line 40, in variable "ssh_public_key":
-[31m│[0m [0m  40:   default     = [4mfile("~/.ssh/id_rsa.pub")[0m[0m
-[31m│[0m [0m
-[31m│[0m [0mFunctions may not be called here.
-[31m╵[0m[0m
+
+Error: Duplicate required providers configuration
+
+  on main_1.tf line 16, in terraform:
+  16:   required_providers {
+
+A module may have only one required providers configuration. The required
+providers were previously configured at main_1.tf:2,3-21.
+
+Error: Function calls not allowed
+
+  on main_1.tf line 40, in variable "ssh_public_key":
+  40:   default     = file("~/.ssh/id_rsa.pub")
+
+Functions may not be called here.
 main_2
-[33m╷[0m[0m
-[33m│[0m [0m[1m[33mWarning: [0m[0m[1mArgument is deprecated[0m
-[33m│[0m [0m
-[33m│[0m [0m[0m  with yandex_mdb_mysql_cluster.mysql_db,
-[33m│[0m [0m  on main_2.tf line 78, in resource "yandex_mdb_mysql_cluster" "mysql_db":
-[33m│[0m [0m  78: resource "yandex_mdb_mysql_cluster" "mysql_db" [4m{[0m[0m
-[33m│[0m [0m
-[33m│[0m [0mto manage users, please switch to using a separate resource type
-[33m│[0m [0myandex_mdb_mysql_user
-[33m│[0m [0m
-[33m│[0m [0m(and one more similar warning elsewhere)
-[33m╵[0m[0m
-[31m╷[0m[0m
-[31m│[0m [0m[1m[31mError: [0m[0m[1mInvalid function argument[0m
-[31m│[0m [0m
-[31m│[0m [0m[0m  on main_2.tf line 139, in resource "yandex_compute_instance" "crm_server":
-[31m│[0m [0m 139:     ssh-keys = "ubuntu:${file("[4m~/.ssh/id_rsa.pub[0m")}"[0m
-[31m│[0m [0m    [90m├────────────────[0m
-[31m│[0m [0m[0m    [90m│[0m while calling [1mfile[0m([0mpath)
-[31m│[0m [0m
-[31m│[0m [0mInvalid value for "path" parameter: no file exists at "~/.ssh/id_rsa.pub";
-[31m│[0m [0mthis function works only with files that are distributed as part of the
-[31m│[0m [0mconfiguration source code, so if this file will be created by a resource in
-[31m│[0m [0mthis configuration you must instead obtain this result from an attribute of
-[31m│[0m [0mthat resource.
-[31m╵[0m[0m
-[31m╷[0m[0m
-[31m│[0m [0m[1m[31mError: [0m[0m[1mInvalid function argument[0m
-[31m│[0m [0m
-[31m│[0m [0m[0m  on main_2.tf line 169, in resource "yandex_compute_instance" "online_store":
-[31m│[0m [0m 169:     ssh-keys = "ubuntu:${file("[4m~/.ssh/id_rsa.pub[0m")}"[0m
-[31m│[0m [0m    [90m├────────────────[0m
-[31m│[0m [0m[0m    [90m│[0m while calling [1mfile[0m([0mpath)
-[31m│[0m [0m
-[31m│[0m [0mInvalid value for "path" parameter: no file exists at "~/.ssh/id_rsa.pub";
-[31m│[0m [0mthis function works only with files that are distributed as part of the
-[31m│[0m [0mconfiguration source code, so if this file will be created by a resource in
-[31m│[0m [0mthis configuration you must instead obtain this result from an attribute of
-[31m│[0m [0mthat resource.
-[31m╵[0m[0m
+
+Warning: Argument is deprecated
+
+  with yandex_mdb_mysql_cluster.mysql_db,
+  on main_2.tf line 78, in resource "yandex_mdb_mysql_cluster" "mysql_db":
+  78: resource "yandex_mdb_mysql_cluster" "mysql_db" {
+
+to manage databases, please switch to using a separate resource type
+yandex_mdb_mysql_database
+
+(and one more similar warning elsewhere)
+
+Error: Invalid function argument
+
+  on main_2.tf line 139, in resource "yandex_compute_instance" "crm_server":
+ 139:     ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"
+    ├────────────────
+    │ while calling file(path)
+
+Invalid value for "path" parameter: no file exists at "~/.ssh/id_rsa.pub";
+this function works only with files that are distributed as part of the
+configuration source code, so if this file will be created by a resource in
+this configuration you must instead obtain this result from an attribute of
+that resource.
+
+Error: Invalid function argument
+
+  on main_2.tf line 169, in resource "yandex_compute_instance" "online_store":
+ 169:     ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"
+    ├────────────────
+    │ while calling file(path)
+
+Invalid value for "path" parameter: no file exists at "~/.ssh/id_rsa.pub";
+this function works only with files that are distributed as part of the
+configuration source code, so if this file will be created by a resource in
+this configuration you must instead obtain this result from an attribute of
+that resource.
 main_3
-[33m╷[0m[0m
-[33m│[0m [0m[1m[33mWarning: [0m[0m[1mArgument is deprecated[0m
-[33m│[0m [0m
-[33m│[0m [0m[0m  with yandex_mdb_mysql_cluster.main_db_cluster,
-[33m│[0m [0m  on main_3.tf line 142, in resource "yandex_mdb_mysql_cluster" "main_db_cluster":
-[33m│[0m [0m 142: resource "yandex_mdb_mysql_cluster" "main_db_cluster" [4m{[0m[0m
-[33m│[0m [0m
-[33m│[0m [0mto manage databases, please switch to using a separate resource type
-[33m│[0m [0myandex_mdb_mysql_database
-[33m│[0m [0m
-[33m│[0m [0m(and one more similar warning elsewhere)
-[33m╵[0m[0m
-[31m╷[0m[0m
-[31m│[0m [0m[1m[31mError: [0m[0m[1mInvalid function argument[0m
-[31m│[0m [0m
-[31m│[0m [0m[0m  on main_3.tf line 105, in resource "yandex_compute_instance" "crm_server":
-[31m│[0m [0m 105:     ssh-keys = "ubuntu:${file("[4m~/.ssh/id_rsa.pub[0m")}"[0m
-[31m│[0m [0m    [90m├────────────────[0m
-[31m│[0m [0m[0m    [90m│[0m while calling [1mfile[0m([0mpath)
-[31m│[0m [0m
-[31m│[0m [0mInvalid value for "path" parameter: no file exists at "~/.ssh/id_rsa.pub";
-[31m│[0m [0mthis function works only with files that are distributed as part of the
-[31m│[0m [0mconfiguration source code, so if this file will be created by a resource in
-[31m│[0m [0mthis configuration you must instead obtain this result from an attribute of
-[31m│[0m [0mthat resource.
-[31m╵[0m[0m
-[31m╷[0m[0m
-[31m│[0m [0m[1m[31mError: [0m[0m[1mInvalid function argument[0m
-[31m│[0m [0m
-[31m│[0m [0m[0m  on main_3.tf line 134, in resource "yandex_compute_instance" "online_store":
-[31m│[0m [0m 134:     ssh-keys = "ubuntu:${file("[4m~/.ssh/id_rsa.pub[0m")}"[0m
-[31m│[0m [0m    [90m├────────────────[0m
-[31m│[0m [0m[0m    [90m│[0m while calling [1mfile[0m([0mpath)
-[31m│[0m [0m
-[31m│[0m [0mInvalid value for "path" parameter: no file exists at "~/.ssh/id_rsa.pub";
-[31m│[0m [0mthis function works only with files that are distributed as part of the
-[31m│[0m [0mconfiguration source code, so if this file will be created by a resource in
-[31m│[0m [0mthis configuration you must instead obtain this result from an attribute of
-[31m│[0m [0mthat resource.
-[31m╵[0m[0m
+
+Warning: Argument is deprecated
+
+  with yandex_mdb_mysql_cluster.main_db_cluster,
+  on main_3.tf line 142, in resource "yandex_mdb_mysql_cluster" "main_db_cluster":
+ 142: resource "yandex_mdb_mysql_cluster" "main_db_cluster" {
+
+to manage users, please switch to using a separate resource type
+yandex_mdb_mysql_user
+
+(and one more similar warning elsewhere)
+
+Error: Invalid function argument
+
+  on main_3.tf line 105, in resource "yandex_compute_instance" "crm_server":
+ 105:     ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"
+    ├────────────────
+    │ while calling file(path)
+
+Invalid value for "path" parameter: no file exists at "~/.ssh/id_rsa.pub";
+this function works only with files that are distributed as part of the
+configuration source code, so if this file will be created by a resource in
+this configuration you must instead obtain this result from an attribute of
+that resource.
+
+Error: Invalid function argument
+
+  on main_3.tf line 134, in resource "yandex_compute_instance" "online_store":
+ 134:     ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"
+    ├────────────────
+    │ while calling file(path)
+
+Invalid value for "path" parameter: no file exists at "~/.ssh/id_rsa.pub";
+this function works only with files that are distributed as part of the
+configuration source code, so if this file will be created by a resource in
+this configuration you must instead obtain this result from an attribute of
+that resource.

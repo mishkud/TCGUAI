@@ -1,97 +1,89 @@
 main_1
-[33m╷[0m[0m
-[33m│[0m [0m[1m[33mWarning: [0m[0m[1mArgument is deprecated[0m
-[33m│[0m [0m
-[33m│[0m [0m[0m  with yandex_mdb_mysql_cluster.main,
-[33m│[0m [0m  on main_1.tf line 171, in resource "yandex_mdb_mysql_cluster" "main":
-[33m│[0m [0m 171: resource "yandex_mdb_mysql_cluster" "main" [4m{[0m[0m
-[33m│[0m [0m
-[33m│[0m [0mto manage databases, please switch to using a separate resource type
-[33m│[0m [0myandex_mdb_mysql_database
-[33m╵[0m[0m
-[33m╷[0m[0m
-[33m│[0m [0m[1m[33mWarning: [0m[0m[1mdefault_authentication_plugin[0m
-[33m│[0m [0m
-[33m│[0m [0m[0m  with yandex_mdb_mysql_cluster.main,
-[33m│[0m [0m  on main_1.tf line 183, in resource "yandex_mdb_mysql_cluster" "main":
-[33m│[0m [0m 183:   mysql_config = [4m{
-[33m│[0m [0m 184:     max_connections                = 100
-[33m│[0m [0m 185:     default_authentication_plugin = "mysql_native_password"
-[33m│[0m [0m 186:   }[0m[0m
-[33m│[0m [0m
-[33m╵[0m[0m
-[31m╷[0m[0m
-[31m│[0m [0m[1m[31mError: [0m[0m[1mCheck Fail key mysql_config.default_authentication_plugin value: mysql_native_password err: Value mysql_native_password is not in enum[0m
-[31m│[0m [0m
-[31m│[0m [0m[0m  with yandex_mdb_mysql_cluster.main,
-[31m│[0m [0m  on main_1.tf line 183, in resource "yandex_mdb_mysql_cluster" "main":
-[31m│[0m [0m 183:   mysql_config = [4m{
-[31m│[0m [0m 184:     max_connections                = 100
-[31m│[0m [0m 185:     default_authentication_plugin = "mysql_native_password"
-[31m│[0m [0m 186:   }[0m[0m
-[31m│[0m [0m
-[31m╵[0m[0m
+
+Warning: Argument is deprecated
+
+  with yandex_mdb_mysql_cluster.main,
+  on main_1.tf line 171, in resource "yandex_mdb_mysql_cluster" "main":
+ 171: resource "yandex_mdb_mysql_cluster" "main" {
+
+to manage databases, please switch to using a separate resource type
+yandex_mdb_mysql_database
+
+Warning: default_authentication_plugin
+
+  with yandex_mdb_mysql_cluster.main,
+  on main_1.tf line 183, in resource "yandex_mdb_mysql_cluster" "main":
+ 183:   mysql_config = {
+ 184:     max_connections                = 100
+ 185:     default_authentication_plugin = "mysql_native_password"
+ 186:   }
+
+
+Error: Check Fail key mysql_config.default_authentication_plugin value: mysql_native_password err: Value mysql_native_password is not in enum
+
+  with yandex_mdb_mysql_cluster.main,
+  on main_1.tf line 183, in resource "yandex_mdb_mysql_cluster" "main":
+ 183:   mysql_config = {
+ 184:     max_connections                = 100
+ 185:     default_authentication_plugin = "mysql_native_password"
+ 186:   }
+
 main_2
-[32m[1mSuccess![0m The configuration is valid.
-[0m
+Success! The configuration is valid.
+
 main_3
-[33m╷[0m[0m
-[33m│[0m [0m[1m[33mWarning: [0m[0m[1mArgument is deprecated[0m
-[33m│[0m [0m
-[33m│[0m [0m[0m  with yandex_mdb_mysql_cluster.mysql,
-[33m│[0m [0m  on main_3.tf line 153, in resource "yandex_mdb_mysql_cluster" "mysql":
-[33m│[0m [0m 153: resource "yandex_mdb_mysql_cluster" "mysql" [4m{[0m[0m
-[33m│[0m [0m
-[33m│[0m [0mto manage users, please switch to using a separate resource type
-[33m│[0m [0myandex_mdb_mysql_user
-[33m│[0m [0m
-[33m│[0m [0m(and one more similar warning elsewhere)
-[33m╵[0m[0m
-[33m╷[0m[0m
-[33m│[0m [0m[1m[33mWarning: [0m[0m[1mdefault_authentication_plugin[0m
-[33m│[0m [0m
-[33m│[0m [0m[0m  with yandex_mdb_mysql_cluster.mysql,
-[33m│[0m [0m  on main_3.tf line 165, in resource "yandex_mdb_mysql_cluster" "mysql":
-[33m│[0m [0m 165:   mysql_config = [4m{
-[33m│[0m [0m 166:     sql_mode                      = "ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION"
-[33m│[0m [0m 167:     max_connections               = 100
-[33m│[0m [0m 168:     default_authentication_plugin = "mysql_native_password"
-[33m│[0m [0m 169:   }[0m[0m
-[33m│[0m [0m
-[33m╵[0m[0m
-[33m╷[0m[0m
-[33m│[0m [0m[1m[33mWarning: [0m[0m[1msql_mode[0m
-[33m│[0m [0m
-[33m│[0m [0m[0m  with yandex_mdb_mysql_cluster.mysql,
-[33m│[0m [0m  on main_3.tf line 165, in resource "yandex_mdb_mysql_cluster" "mysql":
-[33m│[0m [0m 165:   mysql_config = [4m{
-[33m│[0m [0m 166:     sql_mode                      = "ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION"
-[33m│[0m [0m 167:     max_connections               = 100
-[33m│[0m [0m 168:     default_authentication_plugin = "mysql_native_password"
-[33m│[0m [0m 169:   }[0m[0m
-[33m│[0m [0m
-[33m╵[0m[0m
-[31m╷[0m[0m
-[31m│[0m [0m[1m[31mError: [0m[0m[1mCheck Fail key mysql_config.default_authentication_plugin value: mysql_native_password err: Value mysql_native_password is not in enum[0m
-[31m│[0m [0m
-[31m│[0m [0m[0m  with yandex_mdb_mysql_cluster.mysql,
-[31m│[0m [0m  on main_3.tf line 165, in resource "yandex_mdb_mysql_cluster" "mysql":
-[31m│[0m [0m 165:   mysql_config = [4m{
-[31m│[0m [0m 166:     sql_mode                      = "ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION"
-[31m│[0m [0m 167:     max_connections               = 100
-[31m│[0m [0m 168:     default_authentication_plugin = "mysql_native_password"
-[31m│[0m [0m 169:   }[0m[0m
-[31m│[0m [0m
-[31m╵[0m[0m
-[31m╷[0m[0m
-[31m│[0m [0m[1m[31mError: [0m[0m[1mCheck Fail key mysql_config.sql_mode value: ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION err: Value NO_AUTO_CREATE_USER is not in enum[0m
-[31m│[0m [0m
-[31m│[0m [0m[0m  with yandex_mdb_mysql_cluster.mysql,
-[31m│[0m [0m  on main_3.tf line 165, in resource "yandex_mdb_mysql_cluster" "mysql":
-[31m│[0m [0m 165:   mysql_config = [4m{
-[31m│[0m [0m 166:     sql_mode                      = "ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION"
-[31m│[0m [0m 167:     max_connections               = 100
-[31m│[0m [0m 168:     default_authentication_plugin = "mysql_native_password"
-[31m│[0m [0m 169:   }[0m[0m
-[31m│[0m [0m
-[31m╵[0m[0m
+
+Warning: Argument is deprecated
+
+  with yandex_mdb_mysql_cluster.mysql,
+  on main_3.tf line 153, in resource "yandex_mdb_mysql_cluster" "mysql":
+ 153: resource "yandex_mdb_mysql_cluster" "mysql" {
+
+to manage users, please switch to using a separate resource type
+yandex_mdb_mysql_user
+
+(and one more similar warning elsewhere)
+
+Warning: sql_mode
+
+  with yandex_mdb_mysql_cluster.mysql,
+  on main_3.tf line 165, in resource "yandex_mdb_mysql_cluster" "mysql":
+ 165:   mysql_config = {
+ 166:     sql_mode                      = "ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION"
+ 167:     max_connections               = 100
+ 168:     default_authentication_plugin = "mysql_native_password"
+ 169:   }
+
+
+Warning: default_authentication_plugin
+
+  with yandex_mdb_mysql_cluster.mysql,
+  on main_3.tf line 165, in resource "yandex_mdb_mysql_cluster" "mysql":
+ 165:   mysql_config = {
+ 166:     sql_mode                      = "ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION"
+ 167:     max_connections               = 100
+ 168:     default_authentication_plugin = "mysql_native_password"
+ 169:   }
+
+
+Error: Check Fail key mysql_config.sql_mode value: ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION err: Value NO_AUTO_CREATE_USER is not in enum
+
+  with yandex_mdb_mysql_cluster.mysql,
+  on main_3.tf line 165, in resource "yandex_mdb_mysql_cluster" "mysql":
+ 165:   mysql_config = {
+ 166:     sql_mode                      = "ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION"
+ 167:     max_connections               = 100
+ 168:     default_authentication_plugin = "mysql_native_password"
+ 169:   }
+
+
+Error: Check Fail key mysql_config.default_authentication_plugin value: mysql_native_password err: Value mysql_native_password is not in enum
+
+  with yandex_mdb_mysql_cluster.mysql,
+  on main_3.tf line 165, in resource "yandex_mdb_mysql_cluster" "mysql":
+ 165:   mysql_config = {
+ 166:     sql_mode                      = "ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION"
+ 167:     max_connections               = 100
+ 168:     default_authentication_plugin = "mysql_native_password"
+ 169:   }
+

@@ -1,123 +1,108 @@
 main_1
-[31m╷[0m[0m
-[31m│[0m [0m[1m[31mError: [0m[0m[1mMissing required provider[0m
-[31m│[0m [0m
-[31m│[0m [0m[0mThis configuration requires provider
-[31m│[0m [0mregistry.terraform.io/hashicorp/yandox, but that provider isn't available.
-[31m│[0m [0mYou may be able to install it automatically by running:
-[31m│[0m [0m  terraform init
-[31m╵[0m[0m
-[31m╷[0m[0m
-[31m│[0m [0m[1m[31mError: [0m[0m[1mMissing required provider[0m
-[31m│[0m [0m
-[31m│[0m [0m[0mThis configuration requires provider registry.terraform.io/hashicorp/yc,
-[31m│[0m [0mbut that provider isn't available. You may be able to install it
-[31m│[0m [0mautomatically by running:
-[31m│[0m [0m  terraform init
-[31m╵[0m[0m
-[31m╷[0m[0m
-[31m│[0m [0m[1m[31mError: [0m[0m[1mMissing required provider[0m
-[31m│[0m [0m
-[31m│[0m [0m[0mThis configuration requires provider
-[31m│[0m [0mregistry.terraform.io/yandex-cloud/yandex, but that provider isn't
-[31m│[0m [0mavailable. You may be able to install it automatically by running:
-[31m│[0m [0m  terraform init
-[31m╵[0m[0m
+
+Error: Missing required provider
+
+This configuration requires provider registry.terraform.io/hashicorp/yandox,
+but that provider isn't available. You may be able to install it
+automatically by running:
+  terraform init
+
+Error: Missing required provider
+
+This configuration requires provider registry.terraform.io/hashicorp/yc, but
+that provider isn't available. You may be able to install it automatically by
+running:
+  terraform init
+
+Error: Missing required provider
+
+This configuration requires provider
+registry.terraform.io/yandex-cloud/yandex, but that provider isn't available.
+You may be able to install it automatically by running:
+  terraform init
 main_2
-[31m╷[0m[0m
-[31m│[0m [0m[1m[31mError: [0m[0m[1mMissing required argument[0m
-[31m│[0m [0m
-[31m│[0m [0m[0m  on main_2.tf line 87, in resource "yandex_mdb_mysql_cluster" "mysql_db":
-[31m│[0m [0m  87: resource "yandex_mdb_mysql_cluster" "mysql_db" [4m{[0m[0m
-[31m│[0m [0m
-[31m│[0m [0mThe argument "network_id" is required, but no definition was found.
-[31m╵[0m[0m
-[31m╷[0m[0m
-[31m│[0m [0m[1m[31mError: [0m[0m[1mUnsupported argument[0m
-[31m│[0m [0m
-[31m│[0m [0m[0m  on main_2.tf line 91, in resource "yandex_mdb_mysql_cluster" "mysql_db":
-[31m│[0m [0m  91:   [4mallocated_storage[0m    = 20[0m
-[31m│[0m [0m
-[31m│[0m [0mAn argument named "allocated_storage" is not expected here.
-[31m╵[0m[0m
-[31m╷[0m[0m
-[31m│[0m [0m[1m[31mError: [0m[0m[1mMissing required argument[0m
-[31m│[0m [0m
-[31m│[0m [0m[0m  on main_2.tf line 92, in resource "yandex_mdb_mysql_cluster" "mysql_db":
-[31m│[0m [0m  92:   host [4m{[0m[0m
-[31m│[0m [0m
-[31m│[0m [0mThe argument "zone" is required, but no definition was found.
-[31m╵[0m[0m
-[31m╷[0m[0m
-[31m│[0m [0m[1m[31mError: [0m[0m[1mMissing required argument[0m
-[31m│[0m [0m
-[31m│[0m [0m[0m  on main_2.tf line 106, in resource "yandex_vpc_security_group" "allow_vm_to_mysql":
-[31m│[0m [0m 106: resource "yandex_vpc_security_group" "allow_vm_to_mysql" [4m{[0m[0m
-[31m│[0m [0m
-[31m│[0m [0mThe argument "network_id" is required, but no definition was found.
-[31m╵[0m[0m
-[31m╷[0m[0m
-[31m│[0m [0m[1m[31mError: [0m[0m[1mUnsupported argument[0m
-[31m│[0m [0m
-[31m│[0m [0m[0m  on main_2.tf line 110, in resource "yandex_vpc_security_group" "allow_vm_to_mysql":
-[31m│[0m [0m 110:     [4mports[0m          = ["3306"][0m
-[31m│[0m [0m
-[31m│[0m [0mAn argument named "ports" is not expected here. Did you mean "port"?
-[31m╵[0m[0m
-[31m╷[0m[0m
-[31m│[0m [0m[1m[31mError: [0m[0m[1mCall to unknown function[0m
-[31m│[0m [0m
-[31m│[0m [0m[0m  on main_2.tf line 113, in resource "yandex_vpc_security_group" "allow_vm_to_mysql":
-[31m│[0m [0m 113:       [4mcidr[0m(yandex_compute_instance.crm_server.network_interface.0.ip_address),[0m
-[31m│[0m [0m
-[31m│[0m [0mThere is no function named "cidr".
-[31m╵[0m[0m
-[31m╷[0m[0m
-[31m│[0m [0m[1m[31mError: [0m[0m[1mCall to unknown function[0m
-[31m│[0m [0m
-[31m│[0m [0m[0m  on main_2.tf line 114, in resource "yandex_vpc_security_group" "allow_vm_to_mysql":
-[31m│[0m [0m 114:       [4mcidr[0m(yandex_compute_instance.webshop_server.network_interface.0.ip_address)][0m
-[31m│[0m [0m
-[31m│[0m [0mThere is no function named "cidr".
-[31m╵[0m[0m
+
+Error: Missing required argument
+
+  on main_2.tf line 87, in resource "yandex_mdb_mysql_cluster" "mysql_db":
+  87: resource "yandex_mdb_mysql_cluster" "mysql_db" {
+
+The argument "network_id" is required, but no definition was found.
+
+Error: Unsupported argument
+
+  on main_2.tf line 91, in resource "yandex_mdb_mysql_cluster" "mysql_db":
+  91:   allocated_storage    = 20
+
+An argument named "allocated_storage" is not expected here.
+
+Error: Missing required argument
+
+  on main_2.tf line 92, in resource "yandex_mdb_mysql_cluster" "mysql_db":
+  92:   host {
+
+The argument "zone" is required, but no definition was found.
+
+Error: Missing required argument
+
+  on main_2.tf line 106, in resource "yandex_vpc_security_group" "allow_vm_to_mysql":
+ 106: resource "yandex_vpc_security_group" "allow_vm_to_mysql" {
+
+The argument "network_id" is required, but no definition was found.
+
+Error: Unsupported argument
+
+  on main_2.tf line 110, in resource "yandex_vpc_security_group" "allow_vm_to_mysql":
+ 110:     ports          = ["3306"]
+
+An argument named "ports" is not expected here. Did you mean "port"?
+
+Error: Call to unknown function
+
+  on main_2.tf line 113, in resource "yandex_vpc_security_group" "allow_vm_to_mysql":
+ 113:       cidr(yandex_compute_instance.crm_server.network_interface.0.ip_address),
+
+There is no function named "cidr".
+
+Error: Call to unknown function
+
+  on main_2.tf line 114, in resource "yandex_vpc_security_group" "allow_vm_to_mysql":
+ 114:       cidr(yandex_compute_instance.webshop_server.network_interface.0.ip_address)]
+
+There is no function named "cidr".
 main_3
-[31m╷[0m[0m
-[31m│[0m [0m[1m[31mError: [0m[0m[1mMissing required provider[0m
-[31m│[0m [0m
-[31m│[0m [0m[0mThis configuration requires provider
-[31m│[0m [0mregistry.terraform.io/hashicorp/random, but that provider isn't available.
-[31m│[0m [0mYou may be able to install it automatically by running:
-[31m│[0m [0m  terraform init
-[31m╵[0m[0m
-[31m╷[0m[0m
-[31m│[0m [0m[1m[31mError: [0m[0m[1mMissing required provider[0m
-[31m│[0m [0m
-[31m│[0m [0m[0mThis configuration requires provider registry.terraform.io/hashicorp/yc,
-[31m│[0m [0mbut that provider isn't available. You may be able to install it
-[31m│[0m [0mautomatically by running:
-[31m│[0m [0m  terraform init
-[31m╵[0m[0m
-[31m╷[0m[0m
-[31m│[0m [0m[1m[31mError: [0m[0m[1mMissing required provider[0m
-[31m│[0m [0m
-[31m│[0m [0m[0mThis configuration requires provider registry.terraform.io/hashicorp/ydsb,
-[31m│[0m [0mbut that provider isn't available. You may be able to install it
-[31m│[0m [0mautomatically by running:
-[31m│[0m [0m  terraform init
-[31m╵[0m[0m
-[31m╷[0m[0m
-[31m│[0m [0m[1m[31mError: [0m[0m[1mMissing required provider[0m
-[31m│[0m [0m
-[31m│[0m [0m[0mThis configuration requires provider registry.terraform.io/hashicorp/ymdb,
-[31m│[0m [0mbut that provider isn't available. You may be able to install it
-[31m│[0m [0mautomatically by running:
-[31m│[0m [0m  terraform init
-[31m╵[0m[0m
-[31m╷[0m[0m
-[31m│[0m [0m[1m[31mError: [0m[0m[1mMissing required provider[0m
-[31m│[0m [0m
-[31m│[0m [0m[0mThis configuration requires provider
-[31m│[0m [0mregistry.terraform.io/yandex-cloud/yandex, but that provider isn't
-[31m│[0m [0mavailable. You may be able to install it automatically by running:
-[31m│[0m [0m  terraform init
-[31m╵[0m[0m
+
+Error: Missing required provider
+
+This configuration requires provider registry.terraform.io/hashicorp/random,
+but that provider isn't available. You may be able to install it
+automatically by running:
+  terraform init
+
+Error: Missing required provider
+
+This configuration requires provider registry.terraform.io/hashicorp/yc, but
+that provider isn't available. You may be able to install it automatically by
+running:
+  terraform init
+
+Error: Missing required provider
+
+This configuration requires provider registry.terraform.io/hashicorp/ydsb,
+but that provider isn't available. You may be able to install it
+automatically by running:
+  terraform init
+
+Error: Missing required provider
+
+This configuration requires provider registry.terraform.io/hashicorp/ymdb,
+but that provider isn't available. You may be able to install it
+automatically by running:
+  terraform init
+
+Error: Missing required provider
+
+This configuration requires provider
+registry.terraform.io/yandex-cloud/yandex, but that provider isn't available.
+You may be able to install it automatically by running:
+  terraform init

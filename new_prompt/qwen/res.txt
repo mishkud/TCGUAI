@@ -1,124 +1,112 @@
 main_1
-[31m╷[0m[0m
-[31m│[0m [0m[1m[31mError: [0m[0m[1mInvalid function argument[0m
-[31m│[0m [0m
-[31m│[0m [0m[0m  on main_1.tf line 92, in resource "yandex_compute_instance" "crm_server":
-[31m│[0m [0m  92:     ssh-keys = "ubuntu:${file("[4m.ssh/id_rsa.pub[0m")}"[0m
-[31m│[0m [0m    [90m├────────────────[0m
-[31m│[0m [0m[0m    [90m│[0m while calling [1mfile[0m([0mpath)
-[31m│[0m [0m
-[31m│[0m [0mInvalid value for "path" parameter: no file exists at ".ssh/id_rsa.pub";
-[31m│[0m [0mthis function works only with files that are distributed as part of the
-[31m│[0m [0mconfiguration source code, so if this file will be created by a resource in
-[31m│[0m [0mthis configuration you must instead obtain this result from an attribute of
-[31m│[0m [0mthat resource.
-[31m╵[0m[0m
-[31m╷[0m[0m
-[31m│[0m [0m[1m[31mError: [0m[0m[1mInvalid function argument[0m
-[31m│[0m [0m
-[31m│[0m [0m[0m  on main_1.tf line 120, in resource "yandex_compute_instance" "web_store":
-[31m│[0m [0m 120:     ssh-keys = "ubuntu:${file("[4m.ssh/id_rsa.pub[0m")}"[0m
-[31m│[0m [0m    [90m├────────────────[0m
-[31m│[0m [0m[0m    [90m│[0m while calling [1mfile[0m([0mpath)
-[31m│[0m [0m
-[31m│[0m [0mInvalid value for "path" parameter: no file exists at ".ssh/id_rsa.pub";
-[31m│[0m [0mthis function works only with files that are distributed as part of the
-[31m│[0m [0mconfiguration source code, so if this file will be created by a resource in
-[31m│[0m [0mthis configuration you must instead obtain this result from an attribute of
-[31m│[0m [0mthat resource.
-[31m╵[0m[0m
-[31m╷[0m[0m
-[31m│[0m [0m[1m[31mError: [0m[0m[1mMissing required argument[0m
-[31m│[0m [0m
-[31m│[0m [0m[0m  on main_1.tf line 125, in resource "yandex_mdb_mysql_cluster" "default":
-[31m│[0m [0m 125: resource "yandex_mdb_mysql_cluster" "default" [4m{[0m[0m
-[31m│[0m [0m
-[31m│[0m [0mThe argument "version" is required, but no definition was found.
-[31m╵[0m[0m
-[31m╷[0m[0m
-[31m│[0m [0m[1m[31mError: [0m[0m[1mUnsupported argument[0m
-[31m│[0m [0m
-[31m│[0m [0m[0m  on main_1.tf line 138, in resource "yandex_mdb_mysql_cluster" "default":
-[31m│[0m [0m 138:     [4mowner[0m = "mysql_user"[0m
-[31m│[0m [0m
-[31m│[0m [0mAn argument named "owner" is not expected here.
-[31m╵[0m[0m
-[31m╷[0m[0m
-[31m│[0m [0m[1m[31mError: [0m[0m[1mUnsupported block type[0m
-[31m│[0m [0m
-[31m│[0m [0m[0m  on main_1.tf line 139, in resource "yandex_mdb_mysql_cluster" "default":
-[31m│[0m [0m 139:     [4mpermission[0m {[0m
-[31m│[0m [0m
-[31m│[0m [0mBlocks of type "permission" are not expected here.
-[31m╵[0m[0m
+
+Error: Invalid function argument
+
+  on main_1.tf line 92, in resource "yandex_compute_instance" "crm_server":
+  92:     ssh-keys = "ubuntu:${file(".ssh/id_rsa.pub")}"
+    ├────────────────
+    │ while calling file(path)
+
+Invalid value for "path" parameter: no file exists at ".ssh/id_rsa.pub"; this
+function works only with files that are distributed as part of the
+configuration source code, so if this file will be created by a resource in
+this configuration you must instead obtain this result from an attribute of
+that resource.
+
+Error: Invalid function argument
+
+  on main_1.tf line 120, in resource "yandex_compute_instance" "web_store":
+ 120:     ssh-keys = "ubuntu:${file(".ssh/id_rsa.pub")}"
+    ├────────────────
+    │ while calling file(path)
+
+Invalid value for "path" parameter: no file exists at ".ssh/id_rsa.pub"; this
+function works only with files that are distributed as part of the
+configuration source code, so if this file will be created by a resource in
+this configuration you must instead obtain this result from an attribute of
+that resource.
+
+Error: Missing required argument
+
+  on main_1.tf line 125, in resource "yandex_mdb_mysql_cluster" "default":
+ 125: resource "yandex_mdb_mysql_cluster" "default" {
+
+The argument "version" is required, but no definition was found.
+
+Error: Unsupported argument
+
+  on main_1.tf line 138, in resource "yandex_mdb_mysql_cluster" "default":
+ 138:     owner = "mysql_user"
+
+An argument named "owner" is not expected here.
+
+Error: Unsupported block type
+
+  on main_1.tf line 139, in resource "yandex_mdb_mysql_cluster" "default":
+ 139:     permission {
+
+Blocks of type "permission" are not expected here.
 main_2
-[31m╷[0m[0m
-[31m│[0m [0m[1m[31mError: [0m[0m[1mArgument or block definition required[0m
-[31m│[0m [0m
-[31m│[0m [0m[0m  on main_2.tf line 139, in resource "yandex_mdb_mysql_cluster" "app-db":
-[31m│[0m [0m 139:       [4mgrant[0m: ["ALL"][0m
-[31m│[0m [0m
-[31m│[0m [0mAn argument or block definition is required here. To set an argument, use
-[31m│[0m [0mthe equals sign "=" to introduce the argument value.
-[31m╵[0m[0m
+
+Error: Argument or block definition required
+
+  on main_2.tf line 139, in resource "yandex_mdb_mysql_cluster" "app-db":
+ 139:       grant: ["ALL"]
+
+An argument or block definition is required here. To set an argument, use the
+equals sign "=" to introduce the argument value.
 main_3
-[31m╷[0m[0m
-[31m│[0m [0m[1m[31mError: [0m[0m[1mInvalid function argument[0m
-[31m│[0m [0m
-[31m│[0m [0m[0m  on main_3.tf line 101, in resource "yandex_compute_instance" "crm-server":
-[31m│[0m [0m 101:     ssh-keys = "ubuntu:${file("[4m~/.ssh/id_rsa.pub[0m")}"[0m
-[31m│[0m [0m    [90m├────────────────[0m
-[31m│[0m [0m[0m    [90m│[0m while calling [1mfile[0m([0mpath)
-[31m│[0m [0m
-[31m│[0m [0mInvalid value for "path" parameter: no file exists at "~/.ssh/id_rsa.pub";
-[31m│[0m [0mthis function works only with files that are distributed as part of the
-[31m│[0m [0mconfiguration source code, so if this file will be created by a resource in
-[31m│[0m [0mthis configuration you must instead obtain this result from an attribute of
-[31m│[0m [0mthat resource.
-[31m╵[0m[0m
-[31m╷[0m[0m
-[31m│[0m [0m[1m[31mError: [0m[0m[1mInvalid function argument[0m
-[31m│[0m [0m
-[31m│[0m [0m[0m  on main_3.tf line 130, in resource "yandex_compute_instance" "web-store":
-[31m│[0m [0m 130:     ssh-keys = "ubuntu:${file("[4m~/.ssh/id_rsa.pub[0m")}"[0m
-[31m│[0m [0m    [90m├────────────────[0m
-[31m│[0m [0m[0m    [90m│[0m while calling [1mfile[0m([0mpath)
-[31m│[0m [0m
-[31m│[0m [0mInvalid value for "path" parameter: no file exists at "~/.ssh/id_rsa.pub";
-[31m│[0m [0mthis function works only with files that are distributed as part of the
-[31m│[0m [0mconfiguration source code, so if this file will be created by a resource in
-[31m│[0m [0mthis configuration you must instead obtain this result from an attribute of
-[31m│[0m [0mthat resource.
-[31m╵[0m[0m
-[31m╷[0m[0m
-[31m│[0m [0m[1m[31mError: [0m[0m[1mMissing required argument[0m
-[31m│[0m [0m
-[31m│[0m [0m[0m  on main_3.tf line 136, in resource "yandex_mdb_mysql_cluster" "app-db":
-[31m│[0m [0m 136: resource "yandex_mdb_mysql_cluster" "app-db" [4m{[0m[0m
-[31m│[0m [0m
-[31m│[0m [0mThe argument "version" is required, but no definition was found.
-[31m╵[0m[0m
-[31m╷[0m[0m
-[31m│[0m [0m[1m[31mError: [0m[0m[1mUnsupported argument[0m
-[31m│[0m [0m
-[31m│[0m [0m[0m  on main_3.tf line 149, in resource "yandex_mdb_mysql_cluster" "app-db":
-[31m│[0m [0m 149:     [4mowner[0m = "db_user"[0m
-[31m│[0m [0m
-[31m│[0m [0mAn argument named "owner" is not expected here.
-[31m╵[0m[0m
-[31m╷[0m[0m
-[31m│[0m [0m[1m[31mError: [0m[0m[1mUnsupported block type[0m
-[31m│[0m [0m
-[31m│[0m [0m[0m  on main_3.tf line 150, in resource "yandex_mdb_mysql_cluster" "app-db":
-[31m│[0m [0m 150:     [4mpermission[0m {[0m
-[31m│[0m [0m
-[31m│[0m [0mBlocks of type "permission" are not expected here.
-[31m╵[0m[0m
-[31m╷[0m[0m
-[31m│[0m [0m[1m[31mError: [0m[0m[1mUnsupported argument[0m
-[31m│[0m [0m
-[31m│[0m [0m[0m  on main_3.tf line 169, in resource "yandex_mdb_mysql_cluster" "app-db":
-[31m│[0m [0m 169:     [4msecurity_group_ids[0m = [yandex_vpc_security_group.mysql-sg.id][0m
-[31m│[0m [0m
-[31m│[0m [0mAn argument named "security_group_ids" is not expected here.
-[31m╵[0m[0m
+
+Error: Invalid function argument
+
+  on main_3.tf line 101, in resource "yandex_compute_instance" "crm-server":
+ 101:     ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"
+    ├────────────────
+    │ while calling file(path)
+
+Invalid value for "path" parameter: no file exists at "~/.ssh/id_rsa.pub";
+this function works only with files that are distributed as part of the
+configuration source code, so if this file will be created by a resource in
+this configuration you must instead obtain this result from an attribute of
+that resource.
+
+Error: Invalid function argument
+
+  on main_3.tf line 130, in resource "yandex_compute_instance" "web-store":
+ 130:     ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"
+    ├────────────────
+    │ while calling file(path)
+
+Invalid value for "path" parameter: no file exists at "~/.ssh/id_rsa.pub";
+this function works only with files that are distributed as part of the
+configuration source code, so if this file will be created by a resource in
+this configuration you must instead obtain this result from an attribute of
+that resource.
+
+Error: Missing required argument
+
+  on main_3.tf line 136, in resource "yandex_mdb_mysql_cluster" "app-db":
+ 136: resource "yandex_mdb_mysql_cluster" "app-db" {
+
+The argument "version" is required, but no definition was found.
+
+Error: Unsupported argument
+
+  on main_3.tf line 149, in resource "yandex_mdb_mysql_cluster" "app-db":
+ 149:     owner = "db_user"
+
+An argument named "owner" is not expected here.
+
+Error: Unsupported block type
+
+  on main_3.tf line 150, in resource "yandex_mdb_mysql_cluster" "app-db":
+ 150:     permission {
+
+Blocks of type "permission" are not expected here.
+
+Error: Unsupported argument
+
+  on main_3.tf line 169, in resource "yandex_mdb_mysql_cluster" "app-db":
+ 169:     security_group_ids = [yandex_vpc_security_group.mysql-sg.id]
+
+An argument named "security_group_ids" is not expected here.
