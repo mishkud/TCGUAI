@@ -1,0 +1,132 @@
+terraform {
+  required_providers {
+    yandex = {
+      source = "yandex-cloud/yandex"
+    }
+  }
+  required_version = ">= 0.13"
+}
+
+provider "yandex" {
+  zone = "<зона_доступности_по_умолчанию>"
+}
+
+# main.tf
+
+# Network infrastructure
+resource "yandex_vpc_network" "main" {
+  name = "main-network"
+}
+
+resource "yandex_vpc_subnet" "main" {
+  name           = "main-subnet"
+  zone           = "ru-central1-a"
+  network_id     = yandex_vpc_network.main.id
+  v4_cidr_blocks = ["192.168.10.0/24"]
+}
+
+# Security Group
+resource "yandex_vpc_security_group" "vm_access" {
+  name        = "vm-access"
+  network_id  = yandex_vpc_network.main.id
+
+  ingress {
+    protocol       = "TCP"
+    port           = 22
+    v4_cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    protocol       = "ANY"
+    from_port      = 0
+    to_port        = 65535
+    v4_cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+# Managed MySQL
+resource "yandex_mdb_mysql_cluster" "main" {
+  name        = "mysql-cluster"
+  environment = "PRODUCTION"
+  version     = "8.0"
+
+  resources {
+    resource_preset_id = "s2.micro"
+    disk_type_id      = "network-ssd"
+    disk_size         = 20
+  }
+
+  host {
+    zone      = "ru-central1-a"
+    subnet_id = yandex_vpc_subnet.main.id
+  }
+
+  security_group_ids = [yandex_vpc_security_group.vm_access.id]
+}
+
+# CRM Server
+resource "yandex_compute_instance" "crm" {
+  name        = "crm-server"
+  platform_id = "standard-v3"
+  zone        = "ru-central1-a"
+
+  resources {
+    cores  = 2
+    memory = 2
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = "fd82re2tpfl4chaupeuf" # Ubuntu 22.04 LTS
+      size     = 20
+    }
+  }
+
+  network_interface {
+    subnet_id = yandex_vpc_subnet.main.id
+    nat       = true
+    security_group_ids = [yandex_vpc_security_group.vm_access.id]
+  }
+
+  metadata = {
+    ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"
+  }
+}
+
+# E-commerce Store
+resource "yandex_compute_instance" "ecommerce" {
+  name        = "ecommerce-store"
+  platform_id = "standard-v3"
+  zone        = "ru-central1-a"
+
+  resources {
+    cores  = 2
+    memory = 2
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = "fd82re2tpfl4chaupeuf" # Ubuntu 22.04 LTS
+      size     = 20
+    }
+  }
+
+  network_interface {
+    subnet_id = yandex_vpc_subnet.main.id
+    nat       = true
+    security_group_ids = [yandex_vpc_security_group.vm_access.id]
+  }
+
+  metadata = {
+    ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"
+  }
+}
+
+# Outputs
+output "crm_public_ip" {
+  value = yandex_compute_instance.crm.network_interface.0.nat_ip_address
+}
+
+output "ecommerce_public_ip" {
+  value = yandex_compute_instance.ecommerce.network_interface.0.nat_ip_address
+}

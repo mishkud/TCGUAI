@@ -17,19 +17,6 @@ A name must start with a letter or underscore and may contain only letters,
 digits, underscores, and dashes.
 main_2
 
-Error: Invalid function argument
-
-  on main_2.tf line 27, in locals:
-  27:   ssh_public_key = file(".ssh/id_rsa.pub")
-    ├────────────────
-    │ while calling file(path)
-
-Invalid value for "path" parameter: no file exists at ".ssh/id_rsa.pub"; this
-function works only with files that are distributed as part of the
-configuration source code, so if this file will be created by a resource in
-this configuration you must instead obtain this result from an attribute of
-that resource.
-
 Error: Missing required argument
 
   on main_2.tf line 53, in resource "yandex_mdb_mysql_cluster" "mysql-cluster":
@@ -67,19 +54,19 @@ Error: Missing required argument
 
 The argument "service_account_id" is required, but no definition was found.
 
-Error: Insufficient deploy_policy blocks
-
-  on main_3.tf line 24, in resource "yandex_compute_instance_group" "crm-instance-group":
-  24: resource "yandex_compute_instance_group" "crm-instance-group" {
-
-At least 1 "deploy_policy" blocks are required.
-
 Error: Insufficient allocation_policy blocks
 
   on main_3.tf line 24, in resource "yandex_compute_instance_group" "crm-instance-group":
   24: resource "yandex_compute_instance_group" "crm-instance-group" {
 
 At least 1 "allocation_policy" blocks are required.
+
+Error: Insufficient deploy_policy blocks
+
+  on main_3.tf line 24, in resource "yandex_compute_instance_group" "crm-instance-group":
+  24: resource "yandex_compute_instance_group" "crm-instance-group" {
+
+At least 1 "deploy_policy" blocks are required.
 
 Error: Unsupported block type
 
@@ -135,6 +122,13 @@ Error: Missing required argument
   on main_3.tf line 93, in resource "yandex_mdb_mysql_cluster" "mysql-cluster":
   93:   resources {
 
+The argument "disk_type_id" is required, but no definition was found.
+
+Error: Missing required argument
+
+  on main_3.tf line 93, in resource "yandex_mdb_mysql_cluster" "mysql-cluster":
+  93:   resources {
+
 The argument "resource_preset_id" is required, but no definition was found.
 
 Error: Missing required argument
@@ -143,13 +137,6 @@ Error: Missing required argument
   93:   resources {
 
 The argument "disk_size" is required, but no definition was found.
-
-Error: Missing required argument
-
-  on main_3.tf line 93, in resource "yandex_mdb_mysql_cluster" "mysql-cluster":
-  93:   resources {
-
-The argument "disk_type_id" is required, but no definition was found.
 
 Error: Unsupported argument
 

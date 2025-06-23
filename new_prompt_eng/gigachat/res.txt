@@ -1,0 +1,453 @@
+main_1
+
+Error: Missing required argument
+
+  on main_1.tf line 36, in resource "yandex_compute_instance_group" "crm_server":
+  36: resource "yandex_compute_instance_group" "crm_server" {
+
+The argument "service_account_id" is required, but no definition was found.
+
+Error: Insufficient instance_template blocks
+
+  on main_1.tf line 36, in resource "yandex_compute_instance_group" "crm_server":
+  36: resource "yandex_compute_instance_group" "crm_server" {
+
+At least 1 "instance_template" blocks are required.
+
+Error: Insufficient deploy_policy blocks
+
+  on main_1.tf line 36, in resource "yandex_compute_instance_group" "crm_server":
+  36: resource "yandex_compute_instance_group" "crm_server" {
+
+At least 1 "deploy_policy" blocks are required.
+
+Error: Insufficient allocation_policy blocks
+
+  on main_1.tf line 36, in resource "yandex_compute_instance_group" "crm_server":
+  36: resource "yandex_compute_instance_group" "crm_server" {
+
+At least 1 "allocation_policy" blocks are required.
+
+Error: Insufficient scale_policy blocks
+
+  on main_1.tf line 36, in resource "yandex_compute_instance_group" "crm_server":
+  36: resource "yandex_compute_instance_group" "crm_server" {
+
+At least 1 "scale_policy" blocks are required.
+
+Error: Unsupported argument
+
+  on main_1.tf line 38, in resource "yandex_compute_instance_group" "crm_server":
+  38:   instance_type = "standard-v2"
+
+An argument named "instance_type" is not expected here.
+
+Error: Unsupported argument
+
+  on main_1.tf line 39, in resource "yandex_compute_instance_group" "crm_server":
+  39:   platform_id   = "standard-v2"
+
+An argument named "platform_id" is not expected here.
+
+Error: Unsupported block type
+
+  on main_1.tf line 40, in resource "yandex_compute_instance_group" "crm_server":
+  40:   resources {
+
+Blocks of type "resources" are not expected here.
+
+Error: Unsupported block type
+
+  on main_1.tf line 44, in resource "yandex_compute_instance_group" "crm_server":
+  44:   boot_disk {
+
+Blocks of type "boot_disk" are not expected here.
+
+Error: Unsupported block type
+
+  on main_1.tf line 50, in resource "yandex_compute_instance_group" "crm_server":
+  50:   network_interface {
+
+Blocks of type "network_interface" are not expected here.
+
+Error: Unsupported argument
+
+  on main_1.tf line 55, in resource "yandex_compute_instance_group" "crm_server":
+  55:   metadata = {
+
+An argument named "metadata" is not expected here.
+
+Error: Unsupported block type
+
+  on main_1.tf line 62, in resource "yandex_compute_instance_group" "crm_server":
+  62:   scaler {
+
+Blocks of type "scaler" are not expected here.
+
+Error: Missing required argument
+
+  on main_1.tf line 69, in resource "yandex_compute_instance_group" "ecommerce_store":
+  69: resource "yandex_compute_instance_group" "ecommerce_store" {
+
+The argument "service_account_id" is required, but no definition was found.
+
+Error: Insufficient scale_policy blocks
+
+  on main_1.tf line 69, in resource "yandex_compute_instance_group" "ecommerce_store":
+  69: resource "yandex_compute_instance_group" "ecommerce_store" {
+
+At least 1 "scale_policy" blocks are required.
+
+Error: Insufficient instance_template blocks
+
+  on main_1.tf line 69, in resource "yandex_compute_instance_group" "ecommerce_store":
+  69: resource "yandex_compute_instance_group" "ecommerce_store" {
+
+At least 1 "instance_template" blocks are required.
+
+Error: Insufficient deploy_policy blocks
+
+  on main_1.tf line 69, in resource "yandex_compute_instance_group" "ecommerce_store":
+  69: resource "yandex_compute_instance_group" "ecommerce_store" {
+
+At least 1 "deploy_policy" blocks are required.
+
+Error: Insufficient allocation_policy blocks
+
+  on main_1.tf line 69, in resource "yandex_compute_instance_group" "ecommerce_store":
+  69: resource "yandex_compute_instance_group" "ecommerce_store" {
+
+At least 1 "allocation_policy" blocks are required.
+
+Error: Unsupported argument
+
+  on main_1.tf line 71, in resource "yandex_compute_instance_group" "ecommerce_store":
+  71:   instance_type = "standard-v2"
+
+An argument named "instance_type" is not expected here.
+
+Error: Unsupported argument
+
+  on main_1.tf line 72, in resource "yandex_compute_instance_group" "ecommerce_store":
+  72:   platform_id   = "standard-v2"
+
+An argument named "platform_id" is not expected here.
+
+Error: Unsupported block type
+
+  on main_1.tf line 73, in resource "yandex_compute_instance_group" "ecommerce_store":
+  73:   resources {
+
+Blocks of type "resources" are not expected here.
+
+Error: Unsupported block type
+
+  on main_1.tf line 77, in resource "yandex_compute_instance_group" "ecommerce_store":
+  77:   boot_disk {
+
+Blocks of type "boot_disk" are not expected here.
+
+Error: Unsupported block type
+
+  on main_1.tf line 83, in resource "yandex_compute_instance_group" "ecommerce_store":
+  83:   network_interface {
+
+Blocks of type "network_interface" are not expected here.
+
+Error: Unsupported argument
+
+  on main_1.tf line 88, in resource "yandex_compute_instance_group" "ecommerce_store":
+  88:   metadata = {
+
+An argument named "metadata" is not expected here.
+
+Error: Unsupported block type
+
+  on main_1.tf line 95, in resource "yandex_compute_instance_group" "ecommerce_store":
+  95:   scaler {
+
+Blocks of type "scaler" are not expected here.
+
+Error: Unsupported argument
+
+  on main_1.tf line 110, in resource "yandex_mdb_mysql_cluster" "mysql_db":
+ 110:   allocated_storage    = 20
+
+An argument named "allocated_storage" is not expected here.
+
+Error: Unsupported argument
+
+  on main_1.tf line 123, in resource "yandex_mdb_mysql_cluster" "mysql_db":
+ 123:     sql_interface      = true
+
+An argument named "sql_interface" is not expected here.
+
+Error: Unsupported block type
+
+  on main_1.tf line 125, in resource "yandex_mdb_mysql_cluster" "mysql_db":
+ 125:   mysql_config_8_0 {
+
+Blocks of type "mysql_config_8_0" are not expected here.
+
+Error: Unsupported argument
+
+  on main_1.tf line 141, in resource "yandex_vpc_security_group" "crm_allow_ssh":
+ 141:     cidr_blocks = [
+
+An argument named "cidr_blocks" is not expected here.
+
+Error: Unsupported argument
+
+  on main_1.tf line 149, in resource "yandex_vpc_security_group" "crm_allow_ssh":
+ 149:     cidr_blocks = [
+
+An argument named "cidr_blocks" is not expected here.
+
+Error: Unsupported argument
+
+  on main_1.tf line 161, in resource "yandex_vpc_security_group" "ecom_allow_ssh":
+ 161:     cidr_blocks = [
+
+An argument named "cidr_blocks" is not expected here.
+
+Error: Unsupported argument
+
+  on main_1.tf line 169, in resource "yandex_vpc_security_group" "ecom_allow_ssh":
+ 169:     cidr_blocks = [
+
+An argument named "cidr_blocks" is not expected here.
+
+Error: Reference to undeclared resource
+
+  on main_1.tf line 177, in output "crm_server_external_ip":
+ 177:   value = yndex_compute_instance_group.crm_server.instances.0.network_interface.0.nat_ip_address
+
+A managed resource "yndex_compute_instance_group" "crm_server" has not been
+declared in the root module.
+
+Error: Reference to undeclared resource
+
+  on main_1.tf line 181, in output "ecommerce_store_external_ip":
+ 181:   value = yndex_compute_instance_group.ecommerce_store.instances.0.network_interface.0.nat_ip_address
+
+A managed resource "yndex_compute_instance_group" "ecommerce_store" has not
+been declared in the root module.
+main_2
+
+Error: Missing required provider
+
+This configuration requires provider registry.terraform.io/hashicorp/yandox,
+but that provider isn't available. You may be able to install it
+automatically by running:
+  terraform init
+
+Error: Missing required provider
+
+This configuration requires provider
+registry.terraform.io/yandex-cloud/yandex, but that provider isn't available.
+You may be able to install it automatically by running:
+  terraform init
+main_3
+
+Error: Missing required argument
+
+  on main_3.tf line 36, in resource "yandex_compute_instance_group" "crm_server":
+  36: resource "yandex_compute_instance_group" "crm_server" {
+
+The argument "service_account_id" is required, but no definition was found.
+
+Error: Insufficient allocation_policy blocks
+
+  on main_3.tf line 36, in resource "yandex_compute_instance_group" "crm_server":
+  36: resource "yandex_compute_instance_group" "crm_server" {
+
+At least 1 "allocation_policy" blocks are required.
+
+Error: Insufficient deploy_policy blocks
+
+  on main_3.tf line 36, in resource "yandex_compute_instance_group" "crm_server":
+  36: resource "yandex_compute_instance_group" "crm_server" {
+
+At least 1 "deploy_policy" blocks are required.
+
+Error: Insufficient scale_policy blocks
+
+  on main_3.tf line 36, in resource "yandex_compute_instance_group" "crm_server":
+  36: resource "yandex_compute_instance_group" "crm_server" {
+
+At least 1 "scale_policy" blocks are required.
+
+Error: Insufficient instance_template blocks
+
+  on main_3.tf line 36, in resource "yandex_compute_instance_group" "crm_server":
+  36: resource "yandex_compute_instance_group" "crm_server" {
+
+At least 1 "instance_template" blocks are required.
+
+Error: Unsupported argument
+
+  on main_3.tf line 37, in resource "yandex_compute_instance_group" "crm_server":
+  37:   name_prefix      = "crm-server-"
+
+An argument named "name_prefix" is not expected here.
+
+Error: Unsupported argument
+
+  on main_3.tf line 38, in resource "yandex_compute_instance_group" "crm_server":
+  38:   instance_count   = 1
+
+An argument named "instance_count" is not expected here.
+
+Error: Unsupported argument
+
+  on main_3.tf line 39, in resource "yandex_compute_instance_group" "crm_server":
+  39:   zone             = "ru-central1-a"
+
+An argument named "zone" is not expected here.
+
+Error: Unsupported argument
+
+  on main_3.tf line 40, in resource "yandex_compute_instance_group" "crm_server":
+  40:   platform_id      = "standard-v2"
+
+An argument named "platform_id" is not expected here.
+
+Error: Unsupported block type
+
+  on main_3.tf line 41, in resource "yandex_compute_instance_group" "crm_server":
+  41:   resources {
+
+Blocks of type "resources" are not expected here.
+
+Error: Unsupported block type
+
+  on main_3.tf line 45, in resource "yandex_compute_instance_group" "crm_server":
+  45:   boot_disk {
+
+Blocks of type "boot_disk" are not expected here.
+
+Error: Unsupported block type
+
+  on main_3.tf line 51, in resource "yandex_compute_instance_group" "crm_server":
+  51:   network_interface {
+
+Blocks of type "network_interface" are not expected here.
+
+Error: Unsupported argument
+
+  on main_3.tf line 56, in resource "yandex_compute_instance_group" "crm_server":
+  56:   metadata = {
+
+An argument named "metadata" is not expected here.
+
+Error: Missing required argument
+
+  on main_3.tf line 61, in resource "yandex_compute_instance_group" "ecommerce_store":
+  61: resource "yandex_compute_instance_group" "ecommerce_store" {
+
+The argument "service_account_id" is required, but no definition was found.
+
+Error: Insufficient allocation_policy blocks
+
+  on main_3.tf line 61, in resource "yandex_compute_instance_group" "ecommerce_store":
+  61: resource "yandex_compute_instance_group" "ecommerce_store" {
+
+At least 1 "allocation_policy" blocks are required.
+
+Error: Insufficient deploy_policy blocks
+
+  on main_3.tf line 61, in resource "yandex_compute_instance_group" "ecommerce_store":
+  61: resource "yandex_compute_instance_group" "ecommerce_store" {
+
+At least 1 "deploy_policy" blocks are required.
+
+Error: Insufficient scale_policy blocks
+
+  on main_3.tf line 61, in resource "yandex_compute_instance_group" "ecommerce_store":
+  61: resource "yandex_compute_instance_group" "ecommerce_store" {
+
+At least 1 "scale_policy" blocks are required.
+
+Error: Insufficient instance_template blocks
+
+  on main_3.tf line 61, in resource "yandex_compute_instance_group" "ecommerce_store":
+  61: resource "yandex_compute_instance_group" "ecommerce_store" {
+
+At least 1 "instance_template" blocks are required.
+
+Error: Unsupported argument
+
+  on main_3.tf line 62, in resource "yandex_compute_instance_group" "ecommerce_store":
+  62:   name_prefix      = "ecommerce-store-"
+
+An argument named "name_prefix" is not expected here.
+
+Error: Unsupported argument
+
+  on main_3.tf line 63, in resource "yandex_compute_instance_group" "ecommerce_store":
+  63:   instance_count   = 1
+
+An argument named "instance_count" is not expected here.
+
+Error: Unsupported argument
+
+  on main_3.tf line 64, in resource "yandex_compute_instance_group" "ecommerce_store":
+  64:   zone             = "ru-central1-a"
+
+An argument named "zone" is not expected here.
+
+Error: Unsupported argument
+
+  on main_3.tf line 65, in resource "yandex_compute_instance_group" "ecommerce_store":
+  65:   platform_id      = "standard-v2"
+
+An argument named "platform_id" is not expected here.
+
+Error: Unsupported block type
+
+  on main_3.tf line 66, in resource "yandex_compute_instance_group" "ecommerce_store":
+  66:   resources {
+
+Blocks of type "resources" are not expected here.
+
+Error: Unsupported block type
+
+  on main_3.tf line 70, in resource "yandex_compute_instance_group" "ecommerce_store":
+  70:   boot_disk {
+
+Blocks of type "boot_disk" are not expected here.
+
+Error: Unsupported block type
+
+  on main_3.tf line 76, in resource "yandex_compute_instance_group" "ecommerce_store":
+  76:   network_interface {
+
+Blocks of type "network_interface" are not expected here.
+
+Error: Unsupported argument
+
+  on main_3.tf line 81, in resource "yandex_compute_instance_group" "ecommerce_store":
+  81:   metadata = {
+
+An argument named "metadata" is not expected here.
+
+Error: Unsupported argument
+
+  on main_3.tf line 137, in resource "yandex_vpc_security_group" "crm_server":
+ 137:     cidr_blocks = [
+
+An argument named "cidr_blocks" is not expected here.
+
+Error: Unsupported argument
+
+  on main_3.tf line 150, in resource "yandex_vpc_security_group" "ecommerce_store":
+ 150:     cidr_blocks = [
+
+An argument named "cidr_blocks" is not expected here.
+
+Error: Unsupported argument
+
+  on main_3.tf line 163, in resource "yandex_vpc_security_group" "mysql_db":
+ 163:     cidr_blocks = [
+
+An argument named "cidr_blocks" is not expected here.

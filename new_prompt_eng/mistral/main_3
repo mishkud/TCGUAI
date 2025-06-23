@@ -1,0 +1,146 @@
+terraform {
+  required_providers {
+    yandex = {
+      source = "yandex-cloud/yandex"
+    }
+  }
+  required_version = ">= 0.13"
+}
+
+provider "yandex" {
+  zone = "<зона_доступности_по_умолчанию>"
+}
+
+variable "ssh_key_path" {
+  default = "~/.ssh/id_rsa.pub"
+}
+
+resource "yandex_vpc_network" "main" {
+  name = "main-network"
+}
+
+resource "yandex_vpc_subnet" "main" {
+  name           = "main-subnet"
+  zone           = "ru-central1-a"
+  network_id     = yandex_vpc_network.main.id
+  v4_cidr_blocks = ["192.168.10.0/24"]
+}
+
+resource "yandex_compute_instance" "crm_server" {
+  name        = "crm-server"
+  platform_id = "standard-v2"
+
+  resources {
+    cores  = 2
+    memory = 2
+    core_fraction = 20
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = "fd827b7g7l1p7v8f5u8u"
+      size     = 20
+    }
+  }
+
+  network_interface {
+    subnet_id = yandex_vpc_subnet.main.id
+    nat       = true
+  }
+
+  metadata = {
+    ssh-keys = "ubuntu:${file(var.ssh_key_path)}"
+  }
+}
+
+resource "yandex_compute_instance" "ecommerce_store" {
+  name        = "ecommerce-store"
+  platform_id = "standard-v2"
+
+  resources {
+    cores  = 2
+    memory = 2
+    core_fraction = 20
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = "fd827b7g7l1p7v8f5u8u"
+      size     = 20
+    }
+  }
+
+  network_interface {
+    subnet_id = yandex_vpc_subnet.main.id
+    nat       = true
+  }
+
+  metadata = {
+    ssh-keys = "ubuntu:${file(var.ssh_key_path)}"
+  }
+}
+
+resource "yandex_mdb_mysql_cluster" "mysql_cluster" {
+  name        = "mysql-cluster"
+  environment  = "PRESTABLE"
+  network_id  = yandex_vpc_network.main.id
+  version      = "8.0"
+
+  resources {
+    resource_preset_id = "s2.micro"
+    disk_size           = 20
+    disk_type_id        = "network-ssd"
+  }
+
+  database {
+    name = "ecommerce_db"
+  }
+
+  user {
+    name     = "admin"
+    password = "your_secure_password"
+    permission {
+      database_name = "ecommerce_db"
+      roles         = ["ALL"]
+    }
+  }
+
+  host {
+    zone      = "ru-central1-a"
+    subnet_id = yandex_vpc_subnet.main.id
+  }
+}
+
+resource "yandex_vpc_security_group" "internal_traffic" {
+  name        = "internal-traffic"
+  description = "Allow internal traffic between VMs and MySQL"
+  network_id  = yandex_vpc_network.main.id
+
+  ingress {
+    protocol       = "ANY"
+    description    = "Internal traffic"
+    v4_cidr_blocks = ["192.168.10.0/24"]
+  }
+}
+
+resource "yandex_vpc_security_group" "ssh_access" {
+  name        = "ssh-access"
+  description = "Allow SSH access"
+  network_id  = yandex_vpc_network.main.id
+
+  ingress {
+    protocol       = "TCP"
+    description    = "SSH access"
+    v4_cidr_blocks = ["0.0.0.0/0"]
+    port           = 22
+  }
+}
+
+output "crm_server_public_ip" {
+  value = yandex_compute_instance.crm_server.network_interface[0].nat_ip_address
+}
+
+output "ecommerce_store_public_ip" {
+  value = yandex_compute_instance.ecommerce_store.network_interface[0].nat_ip_address
+}
+

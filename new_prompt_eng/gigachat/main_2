@@ -1,0 +1,188 @@
+terraform {
+  required_providers {
+    yandex = {
+      source = "yandex-cloud/yandex"
+    }
+  }
+  required_version = ">= 0.13"
+}
+
+provider "yandex" {
+  zone = "<зона_доступности_по_умолчанию>"
+}
+
+# Main configuration file
+
+variable "ssh_public_key_path" {
+  type = string
+  description = "Path to the SSH public key file."
+}
+
+locals {
+  ssh_public_key_content = file(var.ssh_public_key_path)
+}
+
+resource "yandox_vpc_network" "network" {
+  name = "default-network"
+}
+
+resource "yandox_vpc_subnet" "subnet" {
+  zone           = "ru-central1-a"
+  network_id     = yandox_vpc_network.network.id
+  v4_cidr_blocks = ["10.130.0.0/24"]
+  name           = "default-subnet"
+}
+
+resource "yandox_compute_instance_group" "crm_server" {
+  name          = "crm-server"
+  instance_type = "standard-v2"
+  resources {
+    cores  = 2
+    memory = 2
+  }
+  boot_disk {
+    initialize_params {
+      image_id = data.yandox_compute_image.ubuntu_2204.id
+      size     = 20
+    }
+  }
+  network_interface {
+    subnet_id       = yandox_vpc_subnet.subnet.id
+    nat             = true
+    security_groups = [yandox_vpc_security_group.allow_ssh_and_http.id]
+  }
+  metadata = {
+    user-data = <<-EOF
+              #cloud-config
+              users:
+                - name: ubuntu
+                  groups: sudo
+                  shell: /bin/bash
+                  ssh_authorized_keys:
+                    - ${local.ssh_public_key_content}
+            EOF
+  }
+  scale_policy {
+    fixed_scale {
+      size = 1
+    }
+  }
+}
+
+resource "yandox_compute_instance_group" "ecommerce_store" {
+  name          = "ecommerce-store"
+  instance_type = "standard-v2"
+  resources {
+    cores  = 2
+    memory = 2
+  }
+  boot_disk {
+    initialize_params {
+      image_id = data.yandox_compute_image.ubuntu_2204.id
+      size     = 20
+    }
+  }
+  network_interface {
+    subnet_id       = yandox_vpc_subnet.subnet.id
+    nat             = true
+    security_groups = [yandox_vpc_security_group.allow_ssh_and_http.id]
+  }
+  metadata = {
+    user-data = <<-EOF
+              #cloud-config
+              users:
+                - name: ubuntu
+                  groups: sudo
+                  shell: /bin/bash
+                  ssh_authorized_keys:
+                    - ${local.ssh_public_key_content}
+            EOF
+  }
+  scale_policy {
+    fixed_scale {
+      size = 1
+    }
+  }
+}
+
+data "yandox_compute_image" "ubuntu_2204" {
+  family = "ubuntu-2204-lts"
+}
+
+resource "yandox_mdb_mysql_cluster" "mysql_db" {
+  name                 = "managed-mysql-cluster"
+  environment          = "PRODUCTION"
+  version              = "8.0"
+  allocated_storage    = 20
+  resources {
+    resource_preset_id = "b2.medium"
+    disk_size          = 20
+    disk_type_id       = "network-hdd"
+  }
+  host {
+    name       = "mysql-host"
+    subnet_ids = [yandox_vpc_subnet.subnet.id]
+  }
+  access {
+    data_lens = false
+  }
+  backup_window_start {
+    hours = 1
+  }
+  sql_mode = [
+    "STRICT_TRANS_TABLES",
+    "NO_ENGINE_SUBSTITUTION"
+  ]
+  mysql_config_8_0 {
+    max_connections = 1000
+  }
+  security_group_ids = [yandox_vpc_security_group.db_access.id]
+}
+
+resource "yandox_vpc_security_group" "allow_ssh_and_http" {
+  name = "allow-ssh-and-http"
+  ingress {
+    from_port    = 22
+    protocol     = "TCP"
+    cidr_blocks  = ["0.0.0.0/0"] # Restrict further if needed
+    description  = "Allow SSH connections"
+  }
+  ingress {
+    from_port    = 80
+    protocol     = "TCP"
+    cidr_blocks  = ["0.0.0.0/0"] # Restrict further if needed
+    description  = "Allow HTTP traffic"
+  }
+  egress {
+    to_port      = 0
+    protocol     = "ALL"
+    cidr_blocks  = ["0.0.0.0/0"]
+    description  = "Allow all outgoing traffic"
+  }
+}
+
+resource "yandox_vpc_security_group" "db_access" {
+  name = "database-access"
+  ingress {
+    from_port    = 3306
+    protocol     = "TCP"
+    source_group_ids = [
+      yandox_vpc_security_group.allow_ssh_and_http.id,
+    ]
+    description  = "Allow database access from app servers"
+  }
+  egress {
+    to_port      = 0
+    protocol     = "ALL"
+    cidr_blocks  = ["0.0.0.0/0"]
+    description  = "Allow all outgoing traffic"
+  }
+}
+
+output "crm_server_ip" {
+  value = yandox_compute_instance_group.crm_server.instances[0].network_interface.0.nat_ip_address
+}
+
+output "ecommerce_store_ip" {
+  value = yandox_compute_instance_group.ecommerce_store.instances[0].network_interface.0.nat_ip_address
+}

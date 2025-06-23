@@ -6,8 +6,8 @@ Warning: Argument is deprecated
   on main_1.tf line 184, in resource "yandex_mdb_mysql_cluster" "app_mysql":
  184: resource "yandex_mdb_mysql_cluster" "app_mysql" {
 
-to manage users, please switch to using a separate resource type
-yandex_mdb_mysql_user
+to manage databases, please switch to using a separate resource type
+yandex_mdb_mysql_database
 
 (and one more similar warning elsewhere)
 
@@ -18,38 +18,12 @@ Error: Unsupported argument
 
 An argument named "image_family" is not expected here.
 
-Error: Invalid function argument
-
-  on main_1.tf line 121, in resource "yandex_compute_instance" "crm_vm":
- 121:     ssh-keys = "ubuntu:${file(".ssh/id_rsa")}"
-    ├────────────────
-    │ while calling file(path)
-
-Invalid value for "path" parameter: no file exists at ".ssh/id_rsa"; this
-function works only with files that are distributed as part of the
-configuration source code, so if this file will be created by a resource in
-this configuration you must instead obtain this result from an attribute of
-that resource.
-
 Error: Unsupported argument
 
   on main_1.tf line 152, in resource "yandex_compute_instance" "store_vm":
  152:       image_family = "ubuntu-2204-lts"
 
 An argument named "image_family" is not expected here.
-
-Error: Invalid function argument
-
-  on main_1.tf line 167, in resource "yandex_compute_instance" "store_vm":
- 167:     ssh-keys = "ubuntu:${file(".ssh/id_rsa")}"
-    ├────────────────
-    │ while calling file(path)
-
-Invalid value for "path" parameter: no file exists at ".ssh/id_rsa"; this
-function works only with files that are distributed as part of the
-configuration source code, so if this file will be created by a resource in
-this configuration you must instead obtain this result from an attribute of
-that resource.
 
 Error: Cannot index a set value
 

@@ -1,0 +1,182 @@
+terraform {
+  required_providers {
+    yandex = {
+      source = "yandex-cloud/yandex"
+    }
+  }
+  required_version = ">= 0.13"
+}
+
+provider "yandex" {
+  zone = "<зона_доступности_по_умолчанию>"
+}
+
+# Provider configuration is omitted intentionally
+
+variable "ssh_public_key_path" {
+  type = string
+  description = "Path to the SSH public key"
+}
+
+locals {
+  ssh_public_key_content = file(var.ssh_public_key_path)
+}
+
+resource "yandex_vpc_network" "network" {
+  name = "iac-network"
+}
+
+resource "yandex_vpc_subnet" "subnet" {
+  zone           = "ru-central1-a"
+  network_id     = yandex_vpc_network.network.id
+  v4_cidr_blocks = ["10.130.0.0/24"]
+  name           = "iac-subnet"
+}
+
+resource "yandex_compute_instance_group" "crm_server" {
+  name          = "crm-server"
+  instance_type = "standard-v2"
+  platform_id   = "standard-v2"
+  resources {
+    cores  = 2
+    memory = 2
+  }
+  boot_disk {
+    initialize_params {
+      image_id = data.yandex_compute_image.ubuntu_2204.id
+      size     = 20
+    }
+  }
+  network_interface {
+    subnet_id              = yandex_vpc_subnet.subnet.id
+    nat                    = true
+    security_group_ids     = [yandex_vpc_security_group.crm_allow_ssh.id]
+  }
+  metadata = {
+    user-data = <<-EOF
+      #cloud-config
+      ssh_authorized_keys:
+        - ${local.ssh_public_key_content}
+    EOF
+  }
+  scaler {
+    fixed_scale {
+      size = 1
+    }
+  }
+}
+
+resource "yandex_compute_instance_group" "ecommerce_store" {
+  name          = "ecommerce-store"
+  instance_type = "standard-v2"
+  platform_id   = "standard-v2"
+  resources {
+    cores  = 2
+    memory = 2
+  }
+  boot_disk {
+    initialize_params {
+      image_id = data.yandex_compute_image.ubuntu_2204.id
+      size     = 20
+    }
+  }
+  network_interface {
+    subnet_id              = yandex_vpc_subnet.subnet.id
+    nat                    = true
+    security_group_ids     = [yandex_vpc_security_group.ecom_allow_ssh.id]
+  }
+  metadata = {
+    user-data = <<-EOF
+      #cloud-config
+      ssh_authorized_keys:
+        - ${local.ssh_public_key_content}
+    EOF
+  }
+  scaler {
+    fixed_scale {
+      size = 1
+    }
+  }
+}
+
+data "yandex_compute_image" "ubuntu_2204" {
+  family = "ubuntu-2204-lts"
+}
+
+resource "yandex_mdb_mysql_cluster" "mysql_db" {
+  name                 = "managed-mysql-cluster"
+  environment          = "PRODUCTION"
+  version              = "8.0"
+  allocated_storage    = 20
+  host {
+    zone            = "ru-central1-a"
+    assign_public_ip = false
+  }
+  resources {
+    resource_preset_id = "b2.medium"
+    disk_size          = 20
+    disk_type_id       = "network-hdd"
+  }
+  access {
+    data_lens          = false
+    web_sql            = false
+    sql_interface      = true
+  }
+  mysql_config_8_0 {
+    log_bin_enable               = true
+    binlog_row_image             = "FULL"
+    binlog_format                = "ROW"
+    sync_binlog                  = 1
+    innodb_flush_log_at_trx_commit = 1
+    transaction_isolation        = "REPEATABLE READ"
+  }
+  network_id = yandex_vpc_network.network.id
+}
+
+resource "yandex_vpc_security_group" "crm_allow_ssh" {
+  name = "allow-ssh-crm"
+  ingress {
+    protocol = "TCP"
+    port     = 22
+    cidr_blocks = [
+      "0.0.0.0/0",
+    ]
+  }
+  egress {
+    protocol = "ALL"
+    from_port = 0
+    to_port   = 0
+    cidr_blocks = [
+      "0.0.0.0/0",
+    ]
+  }
+  network_id = yandex_vpc_network.network.id
+}
+
+resource "yandex_vpc_security_group" "ecom_allow_ssh" {
+  name = "allow-ssh-ecom"
+  ingress {
+    protocol = "TCP"
+    port     = 22
+    cidr_blocks = [
+      "0.0.0.0/0",
+    ]
+  }
+  egress {
+    protocol = "ALL"
+    from_port = 0
+    to_port   = 0
+    cidr_blocks = [
+      "0.0.0.0/0",
+    ]
+  }
+  network_id = yandex_vpc_network.network.id
+}
+
+output "crm_server_external_ip" {
+  value = yndex_compute_instance_group.crm_server.instances.0.network_interface.0.nat_ip_address
+}
+
+output "ecommerce_store_external_ip" {
+  value = yndex_compute_instance_group.ecommerce_store.instances.0.network_interface.0.nat_ip_address
+}

@@ -1,0 +1,15 @@
+main_1
+
+Warning: Argument is deprecated
+
+  with yandex_mdb_mysql_cluster.mysql_db,
+  on main_1.tf line 115, in resource "yandex_mdb_mysql_cluster" "mysql_db":
+ 115: resource "yandex_mdb_mysql_cluster" "mysql_db" {
+
+to manage users, please switch to using a separate resource type
+yandex_mdb_mysql_user
+
+(and one more similar warning elsewhere)
+Success! The configuration is valid, but there were some validation warnings
+as shown above.
+

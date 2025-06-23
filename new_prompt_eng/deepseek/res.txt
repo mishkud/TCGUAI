@@ -1,0 +1,14 @@
+main_1
+Success! The configuration is valid.
+
+main_2
+
+Error: Missing required argument
+
+  on main_2.tf line 48, in resource "yandex_mdb_mysql_cluster" "main":
+  48: resource "yandex_mdb_mysql_cluster" "main" {
+
+The argument "network_id" is required, but no definition was found.
+main_3
+Success! The configuration is valid.
+

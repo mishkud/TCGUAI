@@ -1,0 +1,173 @@
+terraform {
+  required_providers {
+    yandex = {
+      source = "yandex-cloud/yandex"
+    }
+  }
+  required_version = ">= 0.13"
+}
+
+provider "yandex" {
+  zone = "<зона_доступности_по_умолчанию>"
+}
+
+# main.tf
+
+variable "ssh_key_path" {
+  default = "~/.ssh/id_rsa"
+}
+
+resource "yandex_vpc_network" "main_network" {
+  name = "main-network"
+}
+
+resource "yandex_vpc_subnet" "main_subnet" {
+  name           = "main-subnet"
+  zone           = "ru-central1-a"
+  network_id     = yandex_vpc_network.main_network.id
+  v4_cidr_blocks = ["192.168.10.0/24"]
+}
+
+resource "yandex_compute_instance" "crm_server" {
+  name = "crm-server"
+  zone = "ru-central1-a"
+
+  resources {
+    cores  = 2
+    memory = 2
+    disk_size = 20
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = "fd85k7cqkhrho3d9tkmc" # Ubuntu 22.04 LTS
+    }
+  }
+
+  network_interface {
+    subnet_id  = yandex_vpc_subnet.main_subnet.id
+    ip_address = "192.168.10.10"
+    nat        = true
+  }
+
+  metadata = {
+    ssh-keys = "ubuntu:${file(var.ssh_key_path)}"
+  }
+}
+
+resource "yandex_compute_instance" "ecommerce_store" {
+  name = "ecommerce-store"
+  zone = "ru-central1-a"
+
+  resources {
+    cores  = 2
+    memory = 2
+    disk_size = 20
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = "fd85k7cqkhrho3d9tkmc" # Ubuntu 22.04 LTS
+    }
+  }
+
+  network_interface {
+    subnet_id  = yandex_vpc_subnet.main_subnet.id
+    ip_address = "192.168.10.11"
+    nat        = true
+  }
+
+  metadata = {
+    ssh-keys = "ubuntu:${file(var.ssh_key_path)}"
+  }
+}
+
+resource "yandex_mdb_mysql_cluster" "main_db" {
+  name        = "main-db"
+  environment = "PRODUCTION"
+  network_id  = yandex_vpc_network.main_network.id
+
+  config {
+    version = "8.0"
+    resources {
+      cores         = 2
+      ram           = 8 * 1024 * 1024 * 1024
+      disk_size     = 20
+      disk_type_id  = "network-hdd"
+    }
+  }
+
+  database {
+    name = "maindb"
+    owner = "dbuser"
+    permission {
+      database_name = "maindb"
+      roles         = ["ALL"]
+    }
+  }
+
+  user {
+    name     = "dbuser"
+    password = "securepassword123"
+    permission {
+      database_name = "maindb"
+      roles         = ["ALL"]
+    }
+  }
+
+  access {
+    web_sql = false
+    data_lens = false
+  }
+
+  security_group_ids = [yandex_vpc_security_group.db_sg.id]
+}
+
+resource "yandex_vpc_security_group" "vm_sg" {
+  name        = "vm-sg"
+  network_id  = yandex_vpc_network.main_network.id
+
+  ingress {
+    protocol       = "TCP"
+    description    = "SSH from anywhere"
+    port           = 22
+    source_address = "0.0.0.0/0"
+  }
+
+  egress {
+    protocol       = "-1"
+    description    = "All traffic outbound"
+    port           = -1
+    destination_address = "0.0.0.0/0"
+  }
+}
+
+resource "yandex_vpc_security_group" "db_sg" {
+  name        = "db-sg"
+  network_id  = yandex_vpc_network.main_network.id
+
+  ingress {
+    protocol       = "TCP"
+    description    = "MySQL access from VMs"
+    port           = 3306
+    source_prefixes = [
+      "192.168.10.10",
+      "192.168.10.11"
+    ]
+  }
+
+  egress {
+    protocol       = "-1"
+    description    = "All traffic outbound"
+    port           = -1
+    destination_address = "0.0.0.0/0"
+  }
+}
+
+output "crm_server_ip" {
+  value = yandex_compute_instance.crm_server.network_interface[0].nat_ip_address
+}
+
+output "ecommerce_store_ip" {
+  value = yandex_compute_instance.ecommerce_store.network_interface[0].nat_ip_address
+}

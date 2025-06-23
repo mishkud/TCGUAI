@@ -1,0 +1,14 @@
+main_1
+Success! The configuration is valid.
+
+main_2
+Success! The configuration is valid.
+
+main_3
+
+Error: Unsupported argument
+
+  on main_3.tf line 148, in resource "yandex_mdb_mysql_cluster" "mysql_cluster":
+ 148:     security_group_ids = [yandex_vpc_security_group.mysql_access.id]
+
+An argument named "security_group_ids" is not expected here.

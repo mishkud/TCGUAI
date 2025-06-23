@@ -1,0 +1,51 @@
+main_1
+Success! The configuration is valid.
+
+main_2
+
+Warning: sql_mode
+
+  with yandex_mdb_mysql_cluster.main,
+  on main_2.tf line 164, in resource "yandex_mdb_mysql_cluster" "main":
+ 164:   mysql_config = {
+ 165:     sql_mode                      = "ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION"
+ 166:     max_connections               = 100
+ 167:     default_authentication_plugin = "mysql_native_password"
+ 168:   }
+
+
+Warning: default_authentication_plugin
+
+  with yandex_mdb_mysql_cluster.main,
+  on main_2.tf line 164, in resource "yandex_mdb_mysql_cluster" "main":
+ 164:   mysql_config = {
+ 165:     sql_mode                      = "ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION"
+ 166:     max_connections               = 100
+ 167:     default_authentication_plugin = "mysql_native_password"
+ 168:   }
+
+
+Error: Check Fail key mysql_config.sql_mode value: ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION err: Value NO_AUTO_CREATE_USER is not in enum
+
+  with yandex_mdb_mysql_cluster.main,
+  on main_2.tf line 164, in resource "yandex_mdb_mysql_cluster" "main":
+ 164:   mysql_config = {
+ 165:     sql_mode                      = "ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION"
+ 166:     max_connections               = 100
+ 167:     default_authentication_plugin = "mysql_native_password"
+ 168:   }
+
+
+Error: Check Fail key mysql_config.default_authentication_plugin value: mysql_native_password err: Value mysql_native_password is not in enum
+
+  with yandex_mdb_mysql_cluster.main,
+  on main_2.tf line 164, in resource "yandex_mdb_mysql_cluster" "main":
+ 164:   mysql_config = {
+ 165:     sql_mode                      = "ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION"
+ 166:     max_connections               = 100
+ 167:     default_authentication_plugin = "mysql_native_password"
+ 168:   }
+
+main_3
+Success! The configuration is valid.
+

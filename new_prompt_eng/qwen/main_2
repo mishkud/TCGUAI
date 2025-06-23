@@ -1,0 +1,237 @@
+terraform {
+  required_providers {
+    yandex = {
+      source = "yandex-cloud/yandex"
+    }
+  }
+  required_version = ">= 0.13"
+}
+
+provider "yandex" {
+  zone = "<зона_доступности_по_умолчанию>"
+}
+
+terraform {
+  required_providers {
+    yandex = {
+      source  = "yandex-cloud/yandex"
+      version = "~> 0.12"
+    }
+  }
+
+  required_version = ">= 1.0"
+}
+
+variable "ssh_key_path" {
+  default = "~/.ssh/id_rsa"
+}
+
+resource "yandex_vpc_network" "main_network" {
+  name = "main-network"
+}
+
+resource "yandex_vpc_subnet" "main_subnet" {
+  name           = "main-subnet"
+  zone           = "ru-central1-a"
+  network_id     = yandex_vpc_network.main_network.id
+  v4_cidr_blocks = ["192.168.10.0/24"]
+}
+
+resource "yandex_compute_instance" "crm_server" {
+  name = "crm-server"
+  zone = "ru-central1-a"
+
+  resources {
+    cores  = 2
+    memory = 2
+    core_fraction = 100
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = "fd8q7e5mv3rr7tqdplas" # Ubuntu 22.04 LTS
+      size     = 20
+    }
+  }
+
+  network_interface {
+    subnet_id  = yandex_vpc_subnet.main_subnet.id
+    ip_address = "auto"
+    nat        = true
+  }
+
+  metadata = {
+    ssh-keys = "ubuntu:${file(var.ssh_key_path)}"
+  }
+
+  depends_on = [yandex_vpc_network.main_network, yandex_vpc_subnet.main_subnet]
+}
+
+resource "yandex_compute_instance" "ecommerce_store" {
+  name = "ecommerce-store"
+  zone = "ru-central1-a"
+
+  resources {
+    cores  = 2
+    memory = 2
+    core_fraction = 100
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = "fd8q7e5mv3rr7tqdplas" # Ubuntu 22.04 LTS
+      size     = 20
+    }
+  }
+
+  network_interface {
+    subnet_id  = yandex_vpc_subnet.main_subnet.id
+    ip_address = "auto"
+    nat        = true
+  }
+
+  metadata = {
+    ssh-keys = "ubuntu:${file(var.ssh_key_path)}"
+  }
+
+  depends_on = [yandex_vpc_network.main_network, yandex_vpc_subnet.main_subnet]
+}
+
+resource "yandex_mdb_mysql_cluster" "main_db" {
+  name        = "main-db"
+  environment = "PRODUCTION"
+  network_id  = yandex_vpc_network.main_network.id
+
+  resources {
+    resource_preset_id = "s2.micro"
+    disk_type_id       = "network-hdd"
+    disk_size          = 20
+  }
+
+  database {
+    name  = "maindb"
+    owner = "dbadmin"
+    permission {
+      database_name = "maindb"
+      roles         = ["ALL"]
+    }
+  }
+
+  host {
+    zone             = "ru-central1-a"
+    subnet_id        = yandex_vpc_subnet.main_subnet.id
+    assign_public_ip = false
+  }
+
+  access {
+    web_sql = true
+  }
+
+  security_group_ids = [yandex_vpc_security_group.db_access.id]
+
+  depends_on = [yandex_vpc_network.main_network, yandex_vpc_subnet.main_subnet]
+}
+
+resource "yandex_vpc_security_group" "vm_ssh" {
+  name        = "vm-ssh-access"
+  description = "Allow SSH from specific IPs only"
+  network_id  = yandex_vpc_network.main_network.id
+
+  ingress {
+    protocol       = "TCP"
+    description    = "SSH access from anywhere (restricted by key)"
+    port           = 22
+    from_port      = 22
+    to_port        = 22
+    cidr_blocks_v4 = ["0.0.0.0/0"]
+  }
+
+  egress {
+    protocol       = "ANY"
+    description    = "Allow all outbound traffic"
+    port           = -1
+    from_port      = -1
+    to_port        = -1
+    cidr_blocks_v4 = ["0.0.0.0/0"]
+  }
+
+  depends_on = [yandex_vpc_network.main_network]
+}
+
+resource "yandex_vpc_security_group" "db_access" {
+  name        = "db-access"
+  description = "Allow DB access only from VMs"
+  network_id  = yandex_vpc_network.main_network.id
+
+  ingress {
+    protocol       = "TCP"
+    description    = "MySQL access"
+    port           = 3306
+    from_port      = 3306
+    to_port        = 3306
+    cidr_blocks_v4 = []
+    predefined_target = "self"
+  }
+
+  egress {
+    protocol       = "ANY"
+    description    = "Allow all outbound traffic"
+    port           = -1
+    from_port      = -1
+    to_port        = -1
+    cidr_blocks_v4 = ["0.0.0.0/0"]
+  }
+
+  depends_on = [yandex_vpc_network.main_network]
+}
+
+# Attach security groups to VMs
+resource "yandex_compute_instance" "crm_server_sg" {
+  name = "crm-server-sg"
+  zone = "ru-central1-a"
+
+  attached_service_account_id = yandex_compute_instance.crm_server.service_account_id
+
+  security_group_ids = [yandex_vpc_security_group.vm_ssh.id]
+
+  lifecycle {
+    create_before_destroy = true
+    ignore_changes = [
+      labels,
+      metadata,
+      tags,
+      allow_stopping_for_update
+    ]
+  }
+
+  depends_on = [yandex_vpc_security_group.vm_ssh, yandex_compute_instance.crm_server]
+}
+
+resource "yandex_compute_instance" "ecommerce_store_sg" {
+  name = "ecommerce-store-sg"
+  zone = "ru-central1-a"
+
+  attached_service_account_id = yandex_compute_instance.ecommerce_store.service_account_id
+
+  security_group_ids = [yandex_vpc_security_group.vm_ssh.id]
+
+  lifecycle {
+    create_before_destroy = true
+    ignore_changes = [
+      labels,
+      metadata,
+      tags,
+      allow_stopping_for_update
+    ]
+  }
+
+  depends_on = [yandex_vpc_security_group.vm_ssh, yandex_compute_instance.ecommerce_store]
+}
+
+output "crm_server_public_ip" {
+  value = yandex_compute_instance.crm_server.network_interface.0.nat_ip_address
+}
+
+output "ecommerce_store_public_ip" {
+  value = yandex_compute_instance.ecommerce_store.network_interface.0.nat_ip_address
+}

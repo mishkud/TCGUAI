@@ -1,0 +1,53 @@
+main_1
+
+Error: Missing required argument
+
+  on main_1.tf line 123, in resource "yandex_mdb_mysql_cluster" "mysql_cluster":
+ 123: resource "yandex_mdb_mysql_cluster" "mysql_cluster" {
+
+The argument "version" is required, but no definition was found.
+
+Error: Insufficient resources blocks
+
+  on main_1.tf line 123, in resource "yandex_mdb_mysql_cluster" "mysql_cluster":
+ 123: resource "yandex_mdb_mysql_cluster" "mysql_cluster" {
+
+At least 1 "resources" blocks are required.
+
+Error: Unsupported block type
+
+  on main_1.tf line 128, in resource "yandex_mdb_mysql_cluster" "mysql_cluster":
+ 128:   config {
+
+Blocks of type "config" are not expected here.
+main_2
+
+Error: Missing required argument
+
+  on main_2.tf line 143, in resource "yandex_mdb_mysql_cluster" "mysql":
+ 143: resource "yandex_mdb_mysql_cluster" "mysql" {
+
+The argument "version" is required, but no definition was found.
+
+Error: Insufficient resources blocks
+
+  on main_2.tf line 143, in resource "yandex_mdb_mysql_cluster" "mysql":
+ 143: resource "yandex_mdb_mysql_cluster" "mysql" {
+
+At least 1 "resources" blocks are required.
+
+Error: Unsupported block type
+
+  on main_2.tf line 148, in resource "yandex_mdb_mysql_cluster" "mysql":
+ 148:   config {
+
+Blocks of type "config" are not expected here.
+main_3
+
+Error: Unsupported block type
+
+  on main_3.tf line 157, in resource "yandex_mdb_mysql_user" "user":
+ 157:   permissions {
+
+Blocks of type "permissions" are not expected here. Did you mean
+"permission"?

@@ -1,0 +1,45 @@
+main_1
+
+Warning: Argument is deprecated
+
+  with yandex_mdb_mysql_cluster.mysql_cluster,
+  on main_1.tf line 85, in resource "yandex_mdb_mysql_cluster" "mysql_cluster":
+  85: resource "yandex_mdb_mysql_cluster" "mysql_cluster" {
+
+to manage databases, please switch to using a separate resource type
+yandex_mdb_mysql_database
+
+(and one more similar warning elsewhere)
+Success! The configuration is valid, but there were some validation warnings
+as shown above.
+
+main_2
+
+Warning: Argument is deprecated
+
+  with yandex_mdb_mysql_cluster.mysql_cluster,
+  on main_2.tf line 85, in resource "yandex_mdb_mysql_cluster" "mysql_cluster":
+  85: resource "yandex_mdb_mysql_cluster" "mysql_cluster" {
+
+to manage users, please switch to using a separate resource type
+yandex_mdb_mysql_user
+
+(and one more similar warning elsewhere)
+Success! The configuration is valid, but there were some validation warnings
+as shown above.
+
+main_3
+
+Warning: Argument is deprecated
+
+  with yandex_mdb_mysql_cluster.mysql_cluster,
+  on main_3.tf line 83, in resource "yandex_mdb_mysql_cluster" "mysql_cluster":
+  83: resource "yandex_mdb_mysql_cluster" "mysql_cluster" {
+
+to manage users, please switch to using a separate resource type
+yandex_mdb_mysql_user
+
+(and one more similar warning elsewhere)
+Success! The configuration is valid, but there were some validation warnings
+as shown above.
+
