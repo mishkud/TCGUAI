@@ -1,0 +1,63 @@
+main_1
+[31m╷[0m[0m
+[31m│[0m [0m[1m[31mError: [0m[0m[1mInvalid function argument[0m
+[31m│[0m [0m
+[31m│[0m [0m[0m  on main_1.tf line 79, in locals:
+[31m│[0m [0m  79:   ssh_key = file("[4m~/.ssh/id_rsa.pub[0m")[0m
+[31m│[0m [0m    [90m├────────────────[0m
+[31m│[0m [0m[0m    [90m│[0m while calling [1mfile[0m([0mpath)
+[31m│[0m [0m
+[31m│[0m [0mInvalid value for "path" parameter: no file exists at "~/.ssh/id_rsa.pub";
+[31m│[0m [0mthis function works only with files that are distributed as part of the
+[31m│[0m [0mconfiguration source code, so if this file will be created by a resource in
+[31m│[0m [0mthis configuration you must instead obtain this result from an attribute of
+[31m│[0m [0mthat resource.
+[31m╵[0m[0m
+[31m╷[0m[0m
+[31m│[0m [0m[1m[31mError: [0m[0m[1mUnsupported block type[0m
+[31m│[0m [0m
+[31m│[0m [0m[0m  on main_1.tf line 180, in resource "yandex_mdb_mysql_user" "appuser":
+[31m│[0m [0m 180:   [4mpermissions[0m {[0m
+[31m│[0m [0m
+[31m│[0m [0mBlocks of type "permissions" are not expected here. Did you mean
+[31m│[0m [0m"permission"?
+[31m╵[0m[0m
+main_2
+[31m╷[0m[0m
+[31m│[0m [0m[1m[31mError: [0m[0m[1mInvalid function argument[0m
+[31m│[0m [0m
+[31m│[0m [0m[0m  on main_2.tf line 72, in locals:
+[31m│[0m [0m  72:   ssh_key = trimspace(file("[4m~/.ssh/id_rsa.pub[0m"))[0m
+[31m│[0m [0m    [90m├────────────────[0m
+[31m│[0m [0m[0m    [90m│[0m while calling [1mfile[0m([0mpath)
+[31m│[0m [0m
+[31m│[0m [0mInvalid value for "path" parameter: no file exists at "~/.ssh/id_rsa.pub";
+[31m│[0m [0mthis function works only with files that are distributed as part of the
+[31m│[0m [0mconfiguration source code, so if this file will be created by a resource in
+[31m│[0m [0mthis configuration you must instead obtain this result from an attribute of
+[31m│[0m [0mthat resource.
+[31m╵[0m[0m
+[31m╷[0m[0m
+[31m│[0m [0m[1m[31mError: [0m[0m[1mUnsupported argument[0m
+[31m│[0m [0m
+[31m│[0m [0m[0m  on main_2.tf line 144, in resource "yandex_mdb_mysql_cluster" "mysql":
+[31m│[0m [0m 144:   [4mregion[0m      = "ru-central1"[0m
+[31m│[0m [0m
+[31m│[0m [0mAn argument named "region" is not expected here.
+[31m╵[0m[0m
+main_3
+[33m╷[0m[0m
+[33m│[0m [0m[1m[33mWarning: [0m[0m[1mArgument is deprecated[0m
+[33m│[0m [0m
+[33m│[0m [0m[0m  with yandex_mdb_mysql_cluster.mysql,
+[33m│[0m [0m  on main_3.tf line 136, in resource "yandex_mdb_mysql_cluster" "mysql":
+[33m│[0m [0m 136: resource "yandex_mdb_mysql_cluster" "mysql" [4m{[0m[0m
+[33m│[0m [0m
+[33m│[0m [0mto manage users, please switch to using a separate resource type
+[33m│[0m [0myandex_mdb_mysql_user
+[33m│[0m [0m
+[33m│[0m [0m(and one more similar warning elsewhere)
+[33m╵[0m[0m
+[32m[1mSuccess![0m The configuration is valid, but there were some
+validation warnings as shown above.
+[0m

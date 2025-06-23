@@ -1,0 +1,56 @@
+main_1
+[31m╷[0m[0m
+[31m│[0m [0m[1m[31mError: [0m[0m[1mMissing required argument[0m
+[31m│[0m [0m
+[31m│[0m [0m[0m  on main_1.tf line 19, in resource "yandex_vpc_subnet" "main":
+[31m│[0m [0m  19: resource "yandex_vpc_subnet" "main" [4m{[0m[0m
+[31m│[0m [0m
+[31m│[0m [0mThe argument "v4_cidr_blocks" is required, but no definition was found.
+[31m╵[0m[0m
+[31m╷[0m[0m
+[31m│[0m [0m[1m[31mError: [0m[0m[1mUnsupported argument[0m
+[31m│[0m [0m
+[31m│[0m [0m[0m  on main_1.tf line 23, in resource "yandex_vpc_subnet" "main":
+[31m│[0m [0m  23:   [4mipv4_range[0m     = "10.1.0.0/24"[0m
+[31m│[0m [0m
+[31m│[0m [0mAn argument named "ipv4_range" is not expected here.
+[31m╵[0m[0m
+[31m╷[0m[0m
+[31m│[0m [0m[1m[31mError: [0m[0m[1mMissing required argument[0m
+[31m│[0m [0m
+[31m│[0m [0m[0m  on main_1.tf line 27, in resource "yandex_vpc_security_group" "default":
+[31m│[0m [0m  27: resource "yandex_vpc_security_group" "default" [4m{[0m[0m
+[31m│[0m [0m
+[31m│[0m [0mThe argument "network_id" is required, but no definition was found.
+[31m╵[0m[0m
+[31m╷[0m[0m
+[31m│[0m [0m[1m[31mError: [0m[0m[1mUnsupported block type[0m
+[31m│[0m [0m
+[31m│[0m [0m[0m  on main_1.tf line 30, in resource "yandex_vpc_security_group" "default":
+[31m│[0m [0m  30:   [4mrule[0m {[0m
+[31m│[0m [0m
+[31m│[0m [0mBlocks of type "rule" are not expected here.
+[31m╵[0m[0m
+[31m╷[0m[0m
+[31m│[0m [0m[1m[31mError: [0m[0m[1mUnsupported block type[0m
+[31m│[0m [0m
+[31m│[0m [0m[0m  on main_1.tf line 37, in resource "yandex_vpc_security_group" "default":
+[31m│[0m [0m  37:   [4mrule[0m {[0m
+[31m│[0m [0m
+[31m│[0m [0mBlocks of type "rule" are not expected here.
+[31m╵[0m[0m
+[31m╷[0m[0m
+[31m│[0m [0m[1m[31mError: [0m[0m[1mReference to undeclared input variable[0m
+[31m│[0m [0m
+[31m│[0m [0m[0m  on main_1.tf line 110, in resource "yandex_mdb_mysql_cluster" "default":
+[31m│[0m [0m 110:   folder_id   = [4mvar.folder_id[0m[0m
+[31m│[0m [0m
+[31m│[0m [0mAn input variable with the name "folder_id" has not been declared. This
+[31m│[0m [0mvariable can be declared with a variable "folder_id" {} block.
+[31m╵[0m[0m
+main_2
+[32m[1mSuccess![0m The configuration is valid.
+[0m
+main_3
+[32m[1mSuccess![0m The configuration is valid.
+[0m

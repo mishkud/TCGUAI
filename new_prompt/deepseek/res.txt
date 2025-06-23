@@ -1,0 +1,95 @@
+main_1
+[31m╷[0m[0m
+[31m│[0m [0m[1m[31mError: [0m[0m[1mInvalid function argument[0m
+[31m│[0m [0m
+[31m│[0m [0m[0m  on main_1.tf line 78, in resource "yandex_compute_instance" "crm":
+[31m│[0m [0m  78:     ssh-keys = "ubuntu:${file("[4m~/.ssh/id_rsa.pub[0m")}"[0m
+[31m│[0m [0m    [90m├────────────────[0m
+[31m│[0m [0m[0m    [90m│[0m while calling [1mfile[0m([0mpath)
+[31m│[0m [0m
+[31m│[0m [0mInvalid value for "path" parameter: no file exists at "~/.ssh/id_rsa.pub";
+[31m│[0m [0mthis function works only with files that are distributed as part of the
+[31m│[0m [0mconfiguration source code, so if this file will be created by a resource in
+[31m│[0m [0mthis configuration you must instead obtain this result from an attribute of
+[31m│[0m [0mthat resource.
+[31m╵[0m[0m
+[31m╷[0m[0m
+[31m│[0m [0m[1m[31mError: [0m[0m[1mInvalid function argument[0m
+[31m│[0m [0m
+[31m│[0m [0m[0m  on main_1.tf line 109, in resource "yandex_compute_instance" "shop":
+[31m│[0m [0m 109:     ssh-keys = "ubuntu:${file("[4m~/.ssh/id_rsa.pub[0m")}"[0m
+[31m│[0m [0m    [90m├────────────────[0m
+[31m│[0m [0m[0m    [90m│[0m while calling [1mfile[0m([0mpath)
+[31m│[0m [0m
+[31m│[0m [0mInvalid value for "path" parameter: no file exists at "~/.ssh/id_rsa.pub";
+[31m│[0m [0mthis function works only with files that are distributed as part of the
+[31m│[0m [0mconfiguration source code, so if this file will be created by a resource in
+[31m│[0m [0mthis configuration you must instead obtain this result from an attribute of
+[31m│[0m [0mthat resource.
+[31m╵[0m[0m
+main_2
+[31m╷[0m[0m
+[31m│[0m [0m[1m[31mError: [0m[0m[1mUnsupported argument[0m
+[31m│[0m [0m
+[31m│[0m [0m[0m  on main_2.tf line 57, in resource "yandex_vpc_security_group" "mysql":
+[31m│[0m [0m  57:     [4msecurity_group[0m = yandex_vpc_security_group.vm_internal.id[0m
+[31m│[0m [0m
+[31m│[0m [0mAn argument named "security_group" is not expected here.
+[31m╵[0m[0m
+[31m╷[0m[0m
+[31m│[0m [0m[1m[31mError: [0m[0m[1mInvalid function argument[0m
+[31m│[0m [0m
+[31m│[0m [0m[0m  on main_2.tf line 89, in resource "yandex_compute_instance" "crm":
+[31m│[0m [0m  89:     ssh-keys = "ubuntu:${file("[4m~/.ssh/id_rsa.pub[0m")}"[0m
+[31m│[0m [0m    [90m├────────────────[0m
+[31m│[0m [0m[0m    [90m│[0m while calling [1mfile[0m([0mpath)
+[31m│[0m [0m
+[31m│[0m [0mInvalid value for "path" parameter: no file exists at "~/.ssh/id_rsa.pub";
+[31m│[0m [0mthis function works only with files that are distributed as part of the
+[31m│[0m [0mconfiguration source code, so if this file will be created by a resource in
+[31m│[0m [0mthis configuration you must instead obtain this result from an attribute of
+[31m│[0m [0mthat resource.
+[31m╵[0m[0m
+[31m╷[0m[0m
+[31m│[0m [0m[1m[31mError: [0m[0m[1mInvalid function argument[0m
+[31m│[0m [0m
+[31m│[0m [0m[0m  on main_2.tf line 120, in resource "yandex_compute_instance" "shop":
+[31m│[0m [0m 120:     ssh-keys = "ubuntu:${file("[4m~/.ssh/id_rsa.pub[0m")}"[0m
+[31m│[0m [0m    [90m├────────────────[0m
+[31m│[0m [0m[0m    [90m│[0m while calling [1mfile[0m([0mpath)
+[31m│[0m [0m
+[31m│[0m [0mInvalid value for "path" parameter: no file exists at "~/.ssh/id_rsa.pub";
+[31m│[0m [0mthis function works only with files that are distributed as part of the
+[31m│[0m [0mconfiguration source code, so if this file will be created by a resource in
+[31m│[0m [0mthis configuration you must instead obtain this result from an attribute of
+[31m│[0m [0mthat resource.
+[31m╵[0m[0m
+main_3
+[31m╷[0m[0m
+[31m│[0m [0m[1m[31mError: [0m[0m[1mInvalid function argument[0m
+[31m│[0m [0m
+[31m│[0m [0m[0m  on main_3.tf line 85, in resource "yandex_compute_instance" "crm":
+[31m│[0m [0m  85:     ssh-keys = "ubuntu:${file("[4m~/.ssh/id_rsa.pub[0m")}"[0m
+[31m│[0m [0m    [90m├────────────────[0m
+[31m│[0m [0m[0m    [90m│[0m while calling [1mfile[0m([0mpath)
+[31m│[0m [0m
+[31m│[0m [0mInvalid value for "path" parameter: no file exists at "~/.ssh/id_rsa.pub";
+[31m│[0m [0mthis function works only with files that are distributed as part of the
+[31m│[0m [0mconfiguration source code, so if this file will be created by a resource in
+[31m│[0m [0mthis configuration you must instead obtain this result from an attribute of
+[31m│[0m [0mthat resource.
+[31m╵[0m[0m
+[31m╷[0m[0m
+[31m│[0m [0m[1m[31mError: [0m[0m[1mInvalid function argument[0m
+[31m│[0m [0m
+[31m│[0m [0m[0m  on main_3.tf line 116, in resource "yandex_compute_instance" "shop":
+[31m│[0m [0m 116:     ssh-keys = "ubuntu:${file("[4m~/.ssh/id_rsa.pub[0m")}"[0m
+[31m│[0m [0m    [90m├────────────────[0m
+[31m│[0m [0m[0m    [90m│[0m while calling [1mfile[0m([0mpath)
+[31m│[0m [0m
+[31m│[0m [0mInvalid value for "path" parameter: no file exists at "~/.ssh/id_rsa.pub";
+[31m│[0m [0mthis function works only with files that are distributed as part of the
+[31m│[0m [0mconfiguration source code, so if this file will be created by a resource in
+[31m│[0m [0mthis configuration you must instead obtain this result from an attribute of
+[31m│[0m [0mthat resource.
+[31m╵[0m[0m
