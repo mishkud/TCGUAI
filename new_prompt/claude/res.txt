@@ -39,21 +39,10 @@ Warning: Argument is deprecated
   on main_3.tf line 153, in resource "yandex_mdb_mysql_cluster" "mysql":
  153: resource "yandex_mdb_mysql_cluster" "mysql" {
 
-to manage users, please switch to using a separate resource type
-yandex_mdb_mysql_user
+to manage databases, please switch to using a separate resource type
+yandex_mdb_mysql_database
 
 (and one more similar warning elsewhere)
-
-Warning: sql_mode
-
-  with yandex_mdb_mysql_cluster.mysql,
-  on main_3.tf line 165, in resource "yandex_mdb_mysql_cluster" "mysql":
- 165:   mysql_config = {
- 166:     sql_mode                      = "ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION"
- 167:     max_connections               = 100
- 168:     default_authentication_plugin = "mysql_native_password"
- 169:   }
-
 
 Warning: default_authentication_plugin
 
@@ -66,7 +55,7 @@ Warning: default_authentication_plugin
  169:   }
 
 
-Error: Check Fail key mysql_config.sql_mode value: ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION err: Value NO_AUTO_CREATE_USER is not in enum
+Warning: sql_mode
 
   with yandex_mdb_mysql_cluster.mysql,
   on main_3.tf line 165, in resource "yandex_mdb_mysql_cluster" "mysql":
@@ -78,6 +67,17 @@ Error: Check Fail key mysql_config.sql_mode value: ONLY_FULL_GROUP_BY,STRICT_TRA
 
 
 Error: Check Fail key mysql_config.default_authentication_plugin value: mysql_native_password err: Value mysql_native_password is not in enum
+
+  with yandex_mdb_mysql_cluster.mysql,
+  on main_3.tf line 165, in resource "yandex_mdb_mysql_cluster" "mysql":
+ 165:   mysql_config = {
+ 166:     sql_mode                      = "ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION"
+ 167:     max_connections               = 100
+ 168:     default_authentication_plugin = "mysql_native_password"
+ 169:   }
+
+
+Error: Check Fail key mysql_config.sql_mode value: ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION err: Value NO_AUTO_CREATE_USER is not in enum
 
   with yandex_mdb_mysql_cluster.mysql,
   on main_3.tf line 165, in resource "yandex_mdb_mysql_cluster" "mysql":

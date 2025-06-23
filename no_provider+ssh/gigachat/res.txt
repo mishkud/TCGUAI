@@ -95,19 +95,19 @@ Error: Missing required argument
 
 The argument "service_account_id" is required, but no definition was found.
 
-Error: Insufficient deploy_policy blocks
-
-  on main_3.tf line 53, in resource "yandex_compute_instance_group" "shop-instance-group":
-  53: resource "yandex_compute_instance_group" "shop-instance-group" {
-
-At least 1 "deploy_policy" blocks are required.
-
 Error: Insufficient allocation_policy blocks
 
   on main_3.tf line 53, in resource "yandex_compute_instance_group" "shop-instance-group":
   53: resource "yandex_compute_instance_group" "shop-instance-group" {
 
 At least 1 "allocation_policy" blocks are required.
+
+Error: Insufficient deploy_policy blocks
+
+  on main_3.tf line 53, in resource "yandex_compute_instance_group" "shop-instance-group":
+  53: resource "yandex_compute_instance_group" "shop-instance-group" {
+
+At least 1 "deploy_policy" blocks are required.
 
 Error: Unsupported block type
 
@@ -135,6 +135,13 @@ Error: Missing required argument
   on main_3.tf line 93, in resource "yandex_mdb_mysql_cluster" "mysql-cluster":
   93:   resources {
 
+The argument "resource_preset_id" is required, but no definition was found.
+
+Error: Missing required argument
+
+  on main_3.tf line 93, in resource "yandex_mdb_mysql_cluster" "mysql-cluster":
+  93:   resources {
+
 The argument "disk_size" is required, but no definition was found.
 
 Error: Missing required argument
@@ -143,13 +150,6 @@ Error: Missing required argument
   93:   resources {
 
 The argument "disk_type_id" is required, but no definition was found.
-
-Error: Missing required argument
-
-  on main_3.tf line 93, in resource "yandex_mdb_mysql_cluster" "mysql-cluster":
-  93:   resources {
-
-The argument "resource_preset_id" is required, but no definition was found.
 
 Error: Unsupported argument
 

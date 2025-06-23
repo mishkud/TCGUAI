@@ -57,32 +57,6 @@ An argument or block definition is required here. To set an argument, use the
 equals sign "=" to introduce the argument value.
 main_3
 
-Error: Invalid function argument
-
-  on main_3.tf line 101, in resource "yandex_compute_instance" "crm-server":
- 101:     ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"
-    ├────────────────
-    │ while calling file(path)
-
-Invalid value for "path" parameter: no file exists at "~/.ssh/id_rsa.pub";
-this function works only with files that are distributed as part of the
-configuration source code, so if this file will be created by a resource in
-this configuration you must instead obtain this result from an attribute of
-that resource.
-
-Error: Invalid function argument
-
-  on main_3.tf line 130, in resource "yandex_compute_instance" "web-store":
- 130:     ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"
-    ├────────────────
-    │ while calling file(path)
-
-Invalid value for "path" parameter: no file exists at "~/.ssh/id_rsa.pub";
-this function works only with files that are distributed as part of the
-configuration source code, so if this file will be created by a resource in
-this configuration you must instead obtain this result from an attribute of
-that resource.
-
 Error: Missing required argument
 
   on main_3.tf line 136, in resource "yandex_mdb_mysql_cluster" "app-db":

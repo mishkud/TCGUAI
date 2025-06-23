@@ -1,31 +1,5 @@
 main_1
 
-Error: Invalid function argument
-
-  on main_1.tf line 82, in resource "yandex_compute_instance" "crm-server":
-  82:     ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"
-    ├────────────────
-    │ while calling file(path)
-
-Invalid value for "path" parameter: no file exists at "~/.ssh/id_rsa.pub";
-this function works only with files that are distributed as part of the
-configuration source code, so if this file will be created by a resource in
-this configuration you must instead obtain this result from an attribute of
-that resource.
-
-Error: Invalid function argument
-
-  on main_1.tf line 112, in resource "yandex_compute_instance" "internet-shop":
- 112:     ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"
-    ├────────────────
-    │ while calling file(path)
-
-Invalid value for "path" parameter: no file exists at "~/.ssh/id_rsa.pub";
-this function works only with files that are distributed as part of the
-configuration source code, so if this file will be created by a resource in
-this configuration you must instead obtain this result from an attribute of
-that resource.
-
 Error: Unsupported argument
 
   on main_1.tf line 146, in resource "yandex_mdb_mysql_cluster" "mysql-cluster":
@@ -34,32 +8,6 @@ Error: Unsupported argument
 An argument named "security_group_ids" is not expected here.
 main_2
 
-Error: Invalid function argument
-
-  on main_2.tf line 82, in resource "yandex_compute_instance" "crm-server":
-  82:     ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"
-    ├────────────────
-    │ while calling file(path)
-
-Invalid value for "path" parameter: no file exists at "~/.ssh/id_rsa.pub";
-this function works only with files that are distributed as part of the
-configuration source code, so if this file will be created by a resource in
-this configuration you must instead obtain this result from an attribute of
-that resource.
-
-Error: Invalid function argument
-
-  on main_2.tf line 112, in resource "yandex_compute_instance" "internet-shop":
- 112:     ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"
-    ├────────────────
-    │ while calling file(path)
-
-Invalid value for "path" parameter: no file exists at "~/.ssh/id_rsa.pub";
-this function works only with files that are distributed as part of the
-configuration source code, so if this file will be created by a resource in
-this configuration you must instead obtain this result from an attribute of
-that resource.
-
 Error: Unsupported argument
 
   on main_2.tf line 146, in resource "yandex_mdb_mysql_cluster" "mysql-cluster":
@@ -67,32 +15,6 @@ Error: Unsupported argument
 
 An argument named "security_group_ids" is not expected here.
 main_3
-
-Error: Invalid function argument
-
-  on main_3.tf line 82, in resource "yandex_compute_instance" "crm-server":
-  82:     ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"
-    ├────────────────
-    │ while calling file(path)
-
-Invalid value for "path" parameter: no file exists at "~/.ssh/id_rsa.pub";
-this function works only with files that are distributed as part of the
-configuration source code, so if this file will be created by a resource in
-this configuration you must instead obtain this result from an attribute of
-that resource.
-
-Error: Invalid function argument
-
-  on main_3.tf line 112, in resource "yandex_compute_instance" "internet-shop":
- 112:     ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"
-    ├────────────────
-    │ while calling file(path)
-
-Invalid value for "path" parameter: no file exists at "~/.ssh/id_rsa.pub";
-this function works only with files that are distributed as part of the
-configuration source code, so if this file will be created by a resource in
-this configuration you must instead obtain this result from an attribute of
-that resource.
 
 Error: Unsupported argument
 
