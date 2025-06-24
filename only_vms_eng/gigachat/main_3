@@ -1,0 +1,119 @@
+terraform {
+  required_providers {
+    yandex = {
+      source = "yandex-cloud/yandex"
+    }
+  }
+  required_version = ">= 0.13"
+}
+
+provider "yandex" {
+  zone = "<зона_доступности_по_умолчанию>"
+}
+# main.tf
+
+variable "public_key_path" {
+  description = "Path to the SSH public key"
+  type        = string
+  default     = "~/.ssh/id_rsa.pub"
+}
+
+resource "yandex_vpc_network" "default-network" {
+  name           = "default-network"
+  labels         = { purpose = "demo" }
+  deletion_protection = false
+}
+
+resource "yandex_vpc_subnet" "default-subnet" {
+  zone           = "ru-central1-a"
+  network_id     = yandex_vpc_network.default-network.id
+  v4_cidr_blocks = ["10.130.0.0/24"]
+  name           = "default-subnet"
+}
+
+resource "yandex_compute_instance_group" "crm-server" {
+  name               = "crm-server"
+  instance_template {
+    platform_id      = "standard-v3"
+    resources {
+      cores          = 2
+      memory         = 2
+    }
+    boot_disk {
+      initialize_params {
+        image_family = "ubuntu-2204-lts"
+        size         = 20
+      }
+    }
+    network_interface {
+      subnet_id       = yandex_vpc_subnet.default-subnet.id
+      nat             = true
+    }
+    metadata = {
+      ssh-keys = file(var.public_key_path)
+    }
+  }
+  scale_policy {
+    fixed_scale {
+      size = 1
+    }
+  }
+  deployment_policy {
+    max_expand_count = 1
+  }
+}
+
+resource "yandex_compute_instance_group" "ecommerce-store" {
+  name               = "ecommerce-store"
+  instance_template {
+    platform_id      = "standard-v3"
+    resources {
+      cores          = 2
+      memory         = 2
+    }
+    boot_disk {
+      initialize_params {
+        image_family = "ubuntu-2204-lts"
+        size         = 20
+      }
+    }
+    network_interface {
+      subnet_id       = yandex_vpc_subnet.default-subnet.id
+      nat             = true
+    }
+    metadata = {
+      ssh-keys = file(var.public_key_path)
+    }
+  }
+  scale_policy {
+    fixed_scale {
+      size = 1
+    }
+  }
+  deployment_policy {
+    max_expand_count = 1
+  }
+}
+
+resource "yandex_vpc_security_group" "allow-ssh-from-internet" {
+  name            = "allow-ssh-from-internet"
+  network_id      = yandex_vpc_network.default-network.id
+  ingress {
+    protocol = "TCP"
+    port     = 22
+    v4_cidr_blocks = ["0.0.0.0/0"] # Restrict further if needed
+  }
+  egress {
+    protocol = "ALL"
+    port     = "-1"
+    v4_cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+output "crm_server_public_ip" {
+  value = element(yandex_compute_instance_group.crm-server.instances[*].network_interfaces[0].nat_ips, 0)
+}
+
+output "ecommerce_store_public_ip" {
+  value = element(yandex_compute_instance_group.ecommerce-store.instances[*].network_interfaces[0].nat_ips, 0)
+}

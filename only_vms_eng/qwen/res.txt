@@ -1,0 +1,21 @@
+main_1
+Success! The configuration is valid.
+
+main_2
+Success! The configuration is valid.
+
+main_3
+
+Error: Unsupported argument
+
+  on main_3.tf line 41, in resource "yandex_vpc_security_group" "vm_ssh_sg":
+  41:     source_address = "0.0.0.0/0"
+
+An argument named "source_address" is not expected here.
+
+Error: Unsupported argument
+
+  on main_3.tf line 48, in resource "yandex_vpc_security_group" "vm_ssh_sg":
+  48:     source_address = "0.0.0.0/0"
+
+An argument named "source_address" is not expected here.

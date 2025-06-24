@@ -1,0 +1,121 @@
+terraform {
+  required_providers {
+    yandex = {
+      source = "yandex-cloud/yandex"
+    }
+  }
+  required_version = ">= 0.13"
+}
+
+provider "yandex" {
+  zone = "<зона_доступности_по_умолчанию>"
+}
+# main.tf
+
+variable "ssh_key_path" {
+  default = "~/.ssh/id_rsa"
+}
+
+# Common network and subnet
+resource "yandex_vpc_network" "main_network" {
+  name = "main-network"
+}
+
+resource "yandex_vpc_subnet" "main_subnet" {
+  name           = "main-subnet"
+  zone           = "ru-central1-a"
+  network_id     = yandex_vpc_network.main_network.id
+  v4_cidr_blocks = ["192.168.10.0/24"]
+}
+
+# Security Group for SSH access
+resource "yandex_vpc_security_group" "vm_ssh_sg" {
+  name        = "vm-ssh-sg"
+  description = "Allow SSH inbound"
+  network_id  = yandex_vpc_network.main_network.id
+
+  ingress {
+    protocol       = "TCP"
+    description    = "Allow SSH from anywhere"
+    port           = 22
+    source_address = "0.0.0.0/0"
+  }
+
+  egress {
+    protocol       = "ANY"
+    description    = "Allow all outbound"
+    port           = -1
+    source_address = "0.0.0.0/0"
+  }
+}
+
+# CRM Server VM
+resource "yandex_compute_instance" "crm_server" {
+  name        = "crm-server"
+  zone        = "ru-central1-a"
+  platform_id = "standard-v3"
+
+  resources {
+    cores  = 2
+    memory = 2
+    core_fraction = 100
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = "fd8f5v5n7gv2b8r4t27u" # Ubuntu 22.04 LTS
+      size     = 20
+    }
+  }
+
+  network_interface {
+    subnet_id               = yandex_vpc_subnet.main_subnet.id
+    ip_address              = "192.168.10.10"
+    nat                     = true
+    security_group_ids      = [yandex_vpc_security_group.vm_ssh_sg.id]
+  }
+
+  metadata = {
+    ssh-keys = "ubuntu:${file(var.ssh_key_path)}"
+  }
+}
+
+# E-commerce Store VM
+resource "yandex_compute_instance" "ecommerce_store" {
+  name        = "ecommerce-store"
+  zone        = "ru-central1-a"
+  platform_id = "standard-v3"
+
+  resources {
+    cores  = 2
+    memory = 2
+    core_fraction = 100
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = "fd8f5v5n7gv2b8r4t27u" # Ubuntu 22.04 LTS
+      size     = 20
+    }
+  }
+
+  network_interface {
+    subnet_id               = yandex_vpc_subnet.main_subnet.id
+    ip_address              = "192.168.10.11"
+    nat                     = true
+    security_group_ids      = [yandex_vpc_security_group.vm_ssh_sg.id]
+  }
+
+  metadata = {
+    ssh-keys = "ubuntu:${file(var.ssh_key_path)}"
+  }
+}
+
+# Outputs
+output "crm_server_public_ip" {
+  value = yandex_compute_instance.crm_server.network_interface[0].nat_ip_address
+}
+
+output "ecommerce_store_public_ip" {
+  value = yandex_compute_instance.ecommerce_store.network_interface[0].nat_ip_address
+}

@@ -1,0 +1,141 @@
+terraform {
+  required_providers {
+    yandex = {
+      source = "yandex-cloud/yandex"
+    }
+  }
+  required_version = ">= 0.13"
+}
+
+provider "yandex" {
+  zone = "<зона_доступности_по_умолчанию>"
+}
+# main.tf
+
+variable "ssh_key_path" {
+  default = "~/.ssh/id_rsa.pub"
+}
+
+# ========== Data ==========
+
+data "local_file" "ssh_key" {
+  filename = var.ssh_key_path
+}
+
+data "yandex_compute_image" "ubuntu" {
+  family = "ubuntu-2204-lts"
+  name   = "ubuntu-2204-lts"
+}
+
+# ========== Network ==========
+
+resource "yandex_vpc_network" "main" {
+  name = "main-network"
+}
+
+resource "yandex_vpc_subnet" "main" {
+  name           = "main-subnet"
+  zone           = "ru-central1-a"
+  network_id     = yandex_vpc_network.main.id
+  v4_cidr_blocks = ["10.0.0.0/24"]
+}
+
+# ========== Security Group ==========
+
+resource "yandex_vpc_security_group" "allow_ssh" {
+  name       = "allow-ssh"
+  network_id = yandex_vpc_network.main.id
+
+  ingress {
+    protocol       = "TCP"
+    port           = 22
+    v4_cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    protocol       = "ANY"
+    v4_cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+# ========== Common VM Settings ==========
+
+locals {
+  vm_resources = {
+    cores  = 2
+    memory = 2
+    disk   = 20
+  }
+  ssh_key = "ubuntu:${trimspace(data.local_file.ssh_key.content)}"
+}
+
+# ========== CRM Server ==========
+
+resource "yandex_compute_instance" "crm" {
+  name        = "crm-server"
+  zone        = "ru-central1-a"
+  platform_id = "standard-v1"
+
+  resources {
+    cores         = local.vm_resources.cores
+    memory        = local.vm_resources.memory
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = data.yandex_compute_image.ubuntu.id
+      size     = local.vm_resources.disk
+    }
+  }
+
+  network_interface {
+    subnet_id      = yandex_vpc_subnet.main.id
+    nat            = true
+    security_group_ids = [yandex_vpc_security_group.allow_ssh.id]
+  }
+
+  metadata = {
+    ssh-keys = local.ssh_key
+  }
+}
+
+# ========== E-commerce Store ==========
+
+resource "yandex_compute_instance" "store" {
+  name        = "ecommerce-store"
+  zone        = "ru-central1-a"
+  platform_id = "standard-v1"
+
+  resources {
+    cores         = local.vm_resources.cores
+    memory        = local.vm_resources.memory
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = data.yandex_compute_image.ubuntu.id
+      size     = local.vm_resources.disk
+    }
+  }
+
+  network_interface {
+    subnet_id      = yandex_vpc_subnet.main.id
+    nat            = true
+    security_group_ids = [yandex_vpc_security_group.allow_ssh.id]
+  }
+
+  metadata = {
+    ssh-keys = local.ssh_key
+  }
+}
+
+# ========== Outputs ==========
+
+output "crm_public_ip" {
+  value = yandex_compute_instance.crm.network_interface[0].nat_ip_address
+}
+
+output "store_public_ip" {
+  value = yandex_compute_instance.store.network_interface[0].nat_ip_address
+}
+

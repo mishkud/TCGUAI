@@ -1,0 +1,14 @@
+main_1
+Success! The configuration is valid.
+
+main_2
+Success! The configuration is valid.
+
+main_3
+
+Error: Function calls not allowed
+
+  on main_3.tf line 18, in variable "ssh_public_key":
+  18:   default = file("~/.ssh/id_rsa.pub")
+
+Functions may not be called here.
