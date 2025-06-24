@@ -1,0 +1,137 @@
+terraform {
+  required_providers {
+    yandex = {
+      source = "yandex-cloud/yandex"
+    }
+  }
+  required_version = ">= 0.13"
+}
+
+provider "yandex" {
+  zone = "<зона_доступности_по_умолчанию>"
+}
+
+# ===================================================================
+# Сетевая инфраструктура (VPC)
+# ===================================================================
+
+resource "yandex_vpc_network" "main-net" {
+  name = "main-network"
+}
+
+resource "yandex_vpc_subnet" "main-subnet" {
+  name           = "main-subnet"
+  zone           = "ru-central1-a"
+  network_id     = yandex_vpc_network.main-net.id
+  v4_cidr_blocks = ["10.0.1.0/24"]
+}
+
+# ===================================================================
+# Группы безопасности (Security Groups)
+# ===================================================================
+
+resource "yandex_vpc_security_group" "ssh-access" {
+  name       = "ssh-access-sg"
+  network_id = yandex_vpc_network.main-net.id
+
+  ingress {
+    protocol       = "TCP"
+    description    = "Allow SSH access"
+    v4_cidr_blocks = ["0.0.0.0/0"]
+    port           = 22
+  }
+
+  egress {
+    protocol       = "ANY"
+    description    = "Allow all outgoing traffic"
+    v4_cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+# ===================================================================
+# Поиск актуального образа Ubuntu 22.04 LTS
+# ===================================================================
+
+data "yandex_compute_image" "ubuntu_2204" {
+  family = "ubuntu-2204-lts"
+}
+
+# ===================================================================
+# Виртуальная машина: CRM-сервер
+# ===================================================================
+
+resource "yandex_compute_instance" "crm-server" {
+  name        = "crm-server"
+  platform_id = "standard-v1"
+  zone        = yandex_vpc_subnet.main-subnet.zone
+
+  resources {
+    cores  = 2
+    memory = 2
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = data.yandex_compute_image.ubuntu_2204.id
+      size     = 20
+      type     = "network-hdd"
+    }
+  }
+
+  network_interface {
+    subnet_id          = yandex_vpc_subnet.main-subnet.id
+    nat                = true
+    security_group_ids = [yandex_vpc_security_group.ssh-access.id]
+  }
+
+  metadata = {
+    ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"
+  }
+}
+
+# ===================================================================
+# Виртуальная машина: Интернет-магазин
+# ===================================================================
+
+resource "yandex_compute_instance" "shop-server" {
+  name        = "shop-server"
+  platform_id = "standard-v1"
+  zone        = yandex_vpc_subnet.main-subnet.zone
+
+  resources {
+    cores  = 2
+    memory = 2
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = data.yandex_compute_image.ubuntu_2204.id
+      size     = 20
+      type     = "network-hdd"
+    }
+  }
+
+  network_interface {
+    subnet_id          = yandex_vpc_subnet.main-subnet.id
+    nat                = true
+    security_group_ids = [yandex_vpc_security_group.ssh-access.id]
+  }
+
+  metadata = {
+    ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"
+  }
+}
+
+# ===================================================================
+# Выходные данные (Outputs)
+# ===================================================================
+
+output "crm_server_public_ip" {
+  description = "Public IP address of the CRM server"
+  value       = yandex_compute_instance.crm-server.network_interface.0.nat_ip_address
+}
+
+output "shop_server_public_ip" {
+  description = "Public IP address of the Shop server"
+  value       = yandex_compute_instance.shop-server.network_interface.0.nat_ip_address
+}

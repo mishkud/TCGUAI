@@ -1,0 +1,27 @@
+main_1
+
+Error: Duplicate required providers configuration
+
+  on main_1.tf line 15, in terraform:
+  15:   required_providers {
+
+A module may have only one required providers configuration. The required
+providers were previously configured at main_1.tf:2,3-21.
+main_2
+
+Error: Duplicate required providers configuration
+
+  on main_2.tf line 15, in terraform:
+  15:   required_providers {
+
+A module may have only one required providers configuration. The required
+providers were previously configured at main_2.tf:2,3-21.
+main_3
+
+Error: Duplicate required providers configuration
+
+  on main_3.tf line 15, in terraform:
+  15:   required_providers {
+
+A module may have only one required providers configuration. The required
+providers were previously configured at main_3.tf:2,3-21.

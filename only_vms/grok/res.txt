@@ -1,0 +1,15 @@
+main_1
+
+Error: Invalid resource type
+
+  on main_1.tf line 56, in resource "yandex_compute_instance_key" "ssh_key":
+  56: resource "yandex_compute_instance_key" "ssh_key" {
+
+The provider yandex-cloud/yandex does not support resource type
+"yandex_compute_instance_key".
+main_2
+Success! The configuration is valid.
+
+main_3
+Success! The configuration is valid.
+

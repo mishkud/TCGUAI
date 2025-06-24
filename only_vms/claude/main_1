@@ -1,0 +1,144 @@
+terraform {
+  required_providers {
+    yandex = {
+      source = "yandex-cloud/yandex"
+    }
+  }
+  required_version = ">= 0.13"
+}
+
+provider "yandex" {
+  zone = "<зона_доступности_по_умолчанию>"
+}
+
+# Variables
+variable "ssh_key_path" {
+  description = "Path to SSH public key"
+  type        = string
+  default     = ".ssh/id_rsa.pub"
+}
+
+variable "zone" {
+  description = "Yandex Cloud zone"
+  type        = string
+  default     = "ru-central1-a"
+}
+
+# Data sources
+data "yandex_compute_image" "ubuntu" {
+  family = "ubuntu-2204-lts"
+}
+
+# Network resources
+resource "yandex_vpc_network" "main" {
+  name = "main-network"
+}
+
+resource "yandex_vpc_subnet" "main" {
+  name           = "main-subnet"
+  zone           = var.zone
+  network_id     = yandex_vpc_network.main.id
+  v4_cidr_blocks = ["10.0.1.0/24"]
+}
+
+# Security Group
+resource "yandex_vpc_security_group" "main" {
+  name       = "main-sg"
+  network_id = yandex_vpc_network.main.id
+
+  egress {
+    protocol       = "ANY"
+    description    = "All outbound traffic"
+    v4_cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    protocol       = "TCP"
+    description    = "SSH"
+    v4_cidr_blocks = ["0.0.0.0/0"]
+    port           = 22
+  }
+
+  ingress {
+    protocol       = "TCP"
+    description    = "HTTP"
+    v4_cidr_blocks = ["0.0.0.0/0"]
+    port           = 80
+  }
+
+  ingress {
+    protocol       = "TCP"
+    description    = "HTTPS"
+    v4_cidr_blocks = ["0.0.0.0/0"]
+    port           = 443
+  }
+}
+
+# CRM Server
+resource "yandex_compute_instance" "crm_server" {
+  name        = "crm-server"
+  platform_id = "standard-v1"
+  zone        = var.zone
+
+  resources {
+    cores  = 2
+    memory = 2
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = data.yandex_compute_image.ubuntu.id
+      size     = 20
+    }
+  }
+
+  network_interface {
+    subnet_id          = yandex_vpc_subnet.main.id
+    nat                = true
+    security_group_ids = [yandex_vpc_security_group.main.id]
+  }
+
+  metadata = {
+    ssh-keys = "ubuntu:${file(var.ssh_key_path)}"
+  }
+}
+
+# E-commerce Server
+resource "yandex_compute_instance" "ecommerce_server" {
+  name        = "ecommerce-server"
+  platform_id = "standard-v1"
+  zone        = var.zone
+
+  resources {
+    cores  = 2
+    memory = 2
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = data.yandex_compute_image.ubuntu.id
+      size     = 20
+    }
+  }
+
+  network_interface {
+    subnet_id          = yandex_vpc_subnet.main.id
+    nat                = true
+    security_group_ids = [yandex_vpc_security_group.main.id]
+  }
+
+  metadata = {
+    ssh-keys = "ubuntu:${file(var.ssh_key_path)}"
+  }
+}
+
+# Outputs
+output "crm_server_public_ip" {
+  description = "Public IP address of CRM server"
+  value       = yandex_compute_instance.crm_server.network_interface.0.nat_ip_address
+}
+
+output "ecommerce_server_public_ip" {
+  description = "Public IP address of E-commerce server"
+  value       = yandex_compute_instance.ecommerce_server.network_interface.0.nat_ip_address
+}

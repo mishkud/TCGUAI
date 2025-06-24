@@ -1,0 +1,150 @@
+main_1
+
+Error: Unsupported argument
+
+  on main_1.tf line 47, in resource "yandex_vpc_security_group" "default":
+  47:     port_min      = 0
+
+An argument named "port_min" is not expected here.
+
+Error: Unsupported argument
+
+  on main_1.tf line 48, in resource "yandex_vpc_security_group" "default":
+  48:     port_max      = 65535
+
+An argument named "port_max" is not expected here.
+main_2
+
+Error: Missing required argument
+
+  on main_2.tf line 35, in resource "yandex_compute_instance_group" "instances":
+  35: resource "yandex_compute_instance_group" "instances" {
+
+The argument "service_account_id" is required, but no definition was found.
+
+Error: Insufficient allocation_policy blocks
+
+  on main_2.tf line 35, in resource "yandex_compute_instance_group" "instances":
+  35: resource "yandex_compute_instance_group" "instances" {
+
+At least 1 "allocation_policy" blocks are required.
+
+Error: Insufficient deploy_policy blocks
+
+  on main_2.tf line 35, in resource "yandex_compute_instance_group" "instances":
+  35: resource "yandex_compute_instance_group" "instances" {
+
+At least 1 "deploy_policy" blocks are required.
+
+Error: Insufficient instance_template blocks
+
+  on main_2.tf line 35, in resource "yandex_compute_instance_group" "instances":
+  35: resource "yandex_compute_instance_group" "instances" {
+
+At least 1 "instance_template" blocks are required.
+
+Error: Insufficient scale_policy blocks
+
+  on main_2.tf line 35, in resource "yandex_compute_instance_group" "instances":
+  35: resource "yandex_compute_instance_group" "instances" {
+
+At least 1 "scale_policy" blocks are required.
+
+Error: Unsupported argument
+
+  on main_2.tf line 37, in resource "yandex_compute_instance_group" "instances":
+  37:   instance_count  = 2
+
+An argument named "instance_count" is not expected here.
+
+Error: Unsupported argument
+
+  on main_2.tf line 38, in resource "yandex_compute_instance_group" "instances":
+  38:   subnet_ids      = [yandex_vpc_subnet.subnet.id]
+
+An argument named "subnet_ids" is not expected here.
+
+Error: Unsupported argument
+
+  on main_2.tf line 39, in resource "yandex_compute_instance_group" "instances":
+  39:   platform_id     = "standard-v3"
+
+An argument named "platform_id" is not expected here.
+
+Error: Unsupported block type
+
+  on main_2.tf line 40, in resource "yandex_compute_instance_group" "instances":
+  40:   resources {
+
+Blocks of type "resources" are not expected here.
+
+Error: Unsupported block type
+
+  on main_2.tf line 44, in resource "yandex_compute_instance_group" "instances":
+  44:   boot_disk {
+
+Blocks of type "boot_disk" are not expected here.
+
+Error: Unsupported argument
+
+  on main_2.tf line 50, in resource "yandex_compute_instance_group" "instances":
+  50:   metadata = {
+
+An argument named "metadata" is not expected here.
+
+Error: Unsupported block type
+
+  on main_2.tf line 53, in resource "yandex_compute_instance_group" "instances":
+  53:   network_interface {
+
+Blocks of type "network_interface" are not expected here.
+
+Error: Unsupported argument
+
+  on main_2.tf line 57, in resource "yandex_compute_instance_group" "instances":
+  57:   allow_stopping_for_update = true
+
+An argument named "allow_stopping_for_update" is not expected here.
+
+Error: Unsupported argument
+
+  on main_2.tf line 62, in resource "yandex_compute_instance_group" "instances":
+  62:     name_prefix = "crm-server-"
+
+An argument named "name_prefix" is not expected here.
+
+Error: Unsupported argument
+
+  on main_2.tf line 65, in resource "yandex_compute_instance_group" "instances":
+  65:     name_prefix = "internet-store-"
+
+An argument named "name_prefix" is not expected here.
+
+Error: Unsupported argument
+
+  on main_2.tf line 85, in resource "yandex_vpc_security_group" "allow-ssh-and-web-traffic":
+  85:     port_min       = 0
+
+An argument named "port_min" is not expected here.
+
+Error: Unsupported argument
+
+  on main_2.tf line 86, in resource "yandex_vpc_security_group" "allow-ssh-and-web-traffic":
+  86:     port_max       = 65535
+
+An argument named "port_max" is not expected here.
+main_3
+
+Error: Missing required provider
+
+This configuration requires provider registry.terraform.io/hashicorp/yandx,
+but that provider isn't available. You may be able to install it
+automatically by running:
+  terraform init
+
+Error: Missing required provider
+
+This configuration requires provider
+registry.terraform.io/yandex-cloud/yandex, but that provider isn't available.
+You may be able to install it automatically by running:
+  terraform init

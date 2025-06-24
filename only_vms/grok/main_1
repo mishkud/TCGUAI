@@ -1,0 +1,135 @@
+terraform {
+  required_providers {
+    yandex = {
+      source = "yandex-cloud/yandex"
+    }
+  }
+  required_version = ">= 0.13"
+}
+
+provider "yandex" {
+  zone = "<зона_доступности_по_умолчанию>"
+}
+
+# Network resources
+resource "yandex_vpc_network" "default" {
+  name = "default-network"
+}
+
+resource "yandex_vpc_subnet" "default" {
+  name           = "default-subnet"
+  zone           = "ru-central1-a"
+  network_id     = yandex_vpc_network.default.id
+  v4_cidr_blocks = ["10.0.0.0/24"]
+}
+
+# Security group
+resource "yandex_vpc_security_group" "default" {
+  name        = "default-sg"
+  network_id  = yandex_vpc_network.default.id
+  description = "Default security group"
+
+  ingress {
+    protocol       = "TCP"
+    description    = "Allow SSH"
+    v4_cidr_blocks = ["0.0.0.0/0"]
+    port           = 22
+  }
+
+  ingress {
+    protocol       = "TCP"
+    description    = "Allow HTTP"
+    v4_cidr_blocks = ["0.0.0.0/0"]
+    port           = 80
+  }
+
+  egress {
+    protocol       = "ANY"
+    description    = "Allow all outbound"
+    v4_cidr_blocks = ["0.0.0.0/0"]
+    from_port      = 0
+    to_port        = 65535
+  }
+}
+
+# SSH key
+resource "yandex_compute_instance_key" "ssh_key" {
+  name        = "ssh-key"
+  public_key  = file("~/.ssh/id_rsa.pub")
+  description = "SSH key for VM access"
+}
+
+# CRM server
+resource "yandex_compute_instance" "crm" {
+  name        = "crm-server"
+  hostname    = "crm-server"
+  zone        = "ru-central1-a"
+  platform_id = "standard-v3"
+
+  resources {
+    cores  = 2
+    memory = 2
+    core_fraction = 100
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = "fd8o8a18kh7pbr3loq6l" # Ubuntu 22.04 LTS
+      size     = 20
+      type     = "network-hdd"
+    }
+  }
+
+  network_interface {
+    subnet_id          = yandex_vpc_subnet.default.id
+    nat                = true
+    security_group_ids = [yandex_vpc_security_group.default.id]
+  }
+
+  metadata = {
+    ssh-keys = "ubuntu:${yandex_compute_instance_key.ssh_key.public_key}"
+  }
+}
+
+# Online store server
+resource "yandex_compute_instance" "store" {
+  name        = "store-server"
+  hostname    = "store-server"
+  zone        = "ru-central1-a"
+  platform_id = "standard-v3"
+
+  resources {
+    cores  = 2
+    memory = 2
+    core_fraction = 100
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = "fd8o8a18kh7pbr3loq6l" # Ubuntu 22.04 LTS
+      size     = 20
+      type     = "network-hdd"
+    }
+  }
+
+  network_interface {
+    subnet_id          = yandex_vpc_subnet.default.id
+    nat                = true
+    security_group_ids = [yandex_vpc_security_group.default.id]
+  }
+
+  metadata = {
+    ssh-keys = "ubuntu:${yandex_compute_instance_key.ssh_key.public_key}"
+  }
+}
+
+# Outputs
+output "crm_public_ip" {
+  description = "Public IP of CRM server"
+  value       = yandex_compute_instance.crm.network_interface[0].nat_ip_address
+}
+
+output "store_public_ip" {
+  description = "Public IP of Online store server"
+  value       = yandex_compute_instance.store.network_interface[0].nat_ip_address
+}

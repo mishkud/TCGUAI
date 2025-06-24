@@ -1,0 +1,147 @@
+terraform {
+  required_providers {
+    yandex = {
+      source = "yandex-cloud/yandex"
+    }
+  }
+  required_version = ">= 0.13"
+}
+
+provider "yandex" {
+  zone = "<зона_доступности_по_умолчанию>"
+}
+
+# Terraform configuration for deploying two VMs in Yandex.Cloud
+
+variable "ssh_public_key_path" {
+  default = "~/.ssh/id_rsa.pub"
+}
+
+locals {
+  ssh_public_key = file(var.ssh_public_key_path)
+}
+
+resource "yandx_vpc_network" "default-network" {
+  name           = "default-network"
+  description    = "Default network for VM deployment"
+  labels         = {}
+}
+
+resource "yandex_vpc_subnet" "default-subnet" {
+  zone           = "ru-central1-a"
+  network_id     = yandx_vpc_network.default-network.id
+  v4_cidr_blocks = ["10.130.0.0/24"]
+  name           = "default-subnet"
+}
+
+resource "yandex_compute_instance_group" "crm-server" {
+  name_prefix       = "crm-server-"
+  instance_template {
+    platform_id      = "standard-v3"
+    resources {
+      cores          = 2
+      memory         = 2
+    }
+    boot_disk {
+      initialize_params {
+        image_id     = data.yandex_compute_image.ubuntu_2204_lts.id
+        size         = 20
+      }
+    }
+    network_interface {
+      subnet_ids     = [yandex_vpc_subnet.default-subnet.id]
+      nat            = true
+    }
+    metadata = {
+      user-data = <<-EOF
+        #cloud-config
+        users:
+          - name: ubuntu
+            groups: sudo
+            shell: /bin/bash
+            ssh_authorized_keys:
+              - ${local.ssh_public_key}
+      EOF
+    }
+  }
+  scale_policy {
+    fixed_scale {
+      size = 1
+    }
+  }
+  deploy_policy {
+    max_expand_count   = 1
+    max_unavailable    = 0
+  }
+}
+
+resource "yandex_compute_instance_group" "internet-store" {
+  name_prefix       = "internet-store-"
+  instance_template {
+    platform_id      = "standard-v3"
+    resources {
+      cores          = 2
+      memory         = 2
+    }
+    boot_disk {
+      initialize_params {
+        image_id     = data.yandex_compute_image.ubuntu_2204_lts.id
+        size         = 20
+      }
+    }
+    network_interface {
+      subnet_ids     = [yandex_vpc_subnet.default-subnet.id]
+      nat            = true
+    }
+    metadata = {
+      user-data = <<-EOF
+        #cloud-config
+        users:
+          - name: ubuntu
+            groups: sudo
+            shell: /bin/bash
+            ssh_authorized_keys:
+              - ${local.ssh_public_key}
+      EOF
+    }
+  }
+  scale_policy {
+    fixed_scale {
+      size = 1
+    }
+  }
+  deploy_policy {
+    max_expand_count   = 1
+    max_unavailable    = 0
+  }
+}
+
+data "yandex_compute_image" "ubuntu_2204_lts" {
+  family = "ubuntu-2204-lts"
+}
+
+resource "yandex_vpc_security_group" "allow-ssh" {
+  name        = "allow-ssh"
+  description = "Allow SSH access to instances"
+  network_id  = yandx_vpc_network.default-network.id
+
+  ingress {
+    from_port    = 22
+    protocol     = "TCP"
+    cidr_blocks  = ["0.0.0.0/0"] # Restrict this if possible
+  }
+
+  egress {
+    to_port       = 0
+    protocol      = "ALL"
+    cidr_blocks   = ["0.0.0.0/0"]
+  }
+}
+
+output "crm_server_ip" {
+  value = element(yandex_compute_instance_group.crm-server.instances, 0).network_interfaces.0.nat_ip_address
+}
+
+output "internet_store_ip" {
+  value = element(yandex_compute_instance_group.internet-store.instances, 0).network_interfaces.0.nat_ip_address
+}

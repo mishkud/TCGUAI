@@ -1,0 +1,107 @@
+terraform {
+  required_providers {
+    yandex = {
+      source = "yandex-cloud/yandex"
+    }
+  }
+  required_version = ">= 0.13"
+}
+
+provider "yandex" {
+  zone = "<зона_доступности_по_умолчанию>"
+}
+
+# Поставщик и версия провайдера будут указаны пользователем
+
+# Переменная для пути к приватному SSH-ключу
+variable "private_key_path" {
+  default = "~/.ssh/id_rsa"
+}
+
+# Общие ресурсы: сеть и подсеть
+resource "yandex_vpc_network" "default" {
+  name           = "crm-network"
+  description    = "Default network for CRM infrastructure"
+}
+
+resource "yandex_vpc_subnet" "default" {
+  zone           = "ru-central1-a"
+  network_id     = yandex_vpc_network.default.id
+  v4_cidr_blocks = ["10.130.0.0/24"]
+  name           = "crm-subnet"
+}
+
+# Security Group для обеих машин
+resource "yandex_vpc_security_group" "default" {
+  name       = "allow-ssh-and-web-traffic"
+  network_id = yandex_vpc_network.default.id
+
+  ingress {
+    protocol          = "TCP"
+    port              = 22
+    v4_cidr_blocks    = ["0.0.0.0/0"] # Доступ по SSH извне
+  }
+
+  egress {
+    protocol      = "All"
+    port_min      = 0
+    port_max      = 65535
+    v4_cidr_blocks = ["0.0.0.0/0"] # Выходящий трафик разрешен ко всему миру
+  }
+}
+
+# Первая виртуальная машина — CRM сервер
+resource "yandex_compute_instance" "crm_server" {
+  name                  = "crm-server"
+  platform_id           = "standard-v2"
+  resources {
+    cores  = 2
+    memory = 2
+  }
+  boot_disk {
+    initialize_params {
+      image_id = "fd8ucljvhc5kncvuf71o" # Официальный образ Ubuntu 22.04 LTS
+      size     = 20
+    }
+  }
+  network_interface {
+    subnet_id               = yandex_vpc_subnet.default.id
+    nat                     = true
+    security_group_ids      = [yandex_vpc_security_group.default.id]
+  }
+  metadata = {
+    ssh-keys = "${file(var.private_key_path)}"
+  }
+}
+
+# Вторая виртуальная машина — интернет-магазин
+resource "yandex_compute_instance" "web_store" {
+  name                  = "web-store"
+  platform_id           = "standard-v2"
+  resources {
+    cores  = 2
+    memory = 2
+  }
+  boot_disk {
+    initialize_params {
+      image_id = "fd8ucljvhc5kncvuf71o" # Официальный образ Ubuntu 22.04 LTS
+      size     = 20
+    }
+  }
+  network_interface {
+    subnet_id               = yandex_vpc_subnet.default.id
+    nat                     = true
+    security_group_ids      = [yandex_vpc_security_group.default.id]
+  }
+  metadata = {
+    ssh-keys = "${file(var.private_key_path)}"
+  }
+}
+
+output "crm_server_public_ip" {
+  value = yandex_compute_instance.crm_server.network_interface.0.nat_ip_address
+}
+
+output "web_store_public_ip" {
+  value = yandex_compute_instance.web_store.network_interface.0.nat_ip_address
+}

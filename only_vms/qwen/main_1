@@ -1,0 +1,129 @@
+terraform {
+  required_providers {
+    yandex = {
+      source = "yandex-cloud/yandex"
+    }
+  }
+  required_version = ">= 0.13"
+}
+
+provider "yandex" {
+  zone = "<зона_доступности_по_умолчанию>"
+}
+
+# Provider должен быть добавлен пользователем отдельно
+
+# Общая сеть
+resource "yandex_vpc_network" "main_network" {
+  name = "main-network"
+}
+
+# Общая подсеть
+resource "yandex_vpc_subnet" "main_subnet" {
+  name           = "main-subnet"
+  zone           = "ru-central1-a"
+  network_id     = yandex_vpc_network.main_network.id
+  v4_cidr_blocks = ["192.168.10.0/24"]
+}
+
+# Группа безопасности для ВМ
+resource "yandex_vpc_security_group" "vm_sg" {
+  name        = "vm-security-group"
+  network_id  = yandex_vpc_network.main_network.id
+  description = "Allow SSH and internal traffic"
+
+  ingress {
+    protocol       = "TCP"
+    description    = "Allow SSH from everywhere"
+    port           = 22
+    v4_cidr_blocks = ["0.0.0.0/0"]
+    source_port    = 22
+  }
+
+  egress {
+    protocol       = "ANY"
+    description    = "Allow all outbound traffic"
+    v4_cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  rule {
+    direction = "INGRESS"
+    protocol  = "ICMP"
+    action    = "ALLOW"
+    from {
+      cidr_block = "0.0.0.0/0"
+    }
+  }
+}
+
+# Общие настройки метаданных для ВМ
+locals {
+  metadata = {
+    ssh-keys = "ubuntu:${file(".ssh/id_rsa.pub")}"
+  }
+}
+
+# CRM-сервер
+resource "yandex_compute_instance" "crm_server" {
+  name        = "crm-server"
+  zone        = "ru-central1-a"
+  platform_id = "standard-v3"
+
+  resources {
+    cores  = 2
+    memory = 2
+    disk_size = 20
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = "fd8rc3u4gof4bdlts547" # Ubuntu 22.04 LTS
+    }
+  }
+
+  network_interface {
+    subnet_id               = yandex_vpc_subnet.main_subnet.id
+    ip_address              = "auto"
+    security_group_ids      = [yandex_vpc_security_group.vm_sg.id]
+    nat                     = true
+  }
+
+  metadata = local.metadata
+}
+
+# Интернет-магазин
+resource "yandex_compute_instance" "web_store" {
+  name        = "web-store"
+  zone        = "ru-central1-a"
+  platform_id = "standard-v3"
+
+  resources {
+    cores  = 2
+    memory = 2
+    disk_size = 20
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = "fd8rc3u4gof4bdlts547" # Ubuntu 22.04 LTS
+    }
+  }
+
+  network_interface {
+    subnet_id               = yandex_vpc_subnet.main_subnet.id
+    ip_address              = "auto"
+    security_group_ids      = [yandex_vpc_security_group.vm_sg.id]
+    nat                     = true
+  }
+
+  metadata = local.metadata
+}
+
+# Outputs
+output "crm_server_ip" {
+  value = yandex_compute_instance.crm_server.network_interface[0].nat_ip_address
+}
+
+output "web_store_ip" {
+  value = yandex_compute_instance.web_store.network_interface[0].nat_ip_address
+}

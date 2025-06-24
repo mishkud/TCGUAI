@@ -1,0 +1,97 @@
+terraform {
+  required_providers {
+    yandex = {
+      source = "yandex-cloud/yandex"
+    }
+  }
+  required_version = ">= 0.13"
+}
+
+provider "yandex" {
+  zone = "<зона_доступности_по_умолчанию>"
+}
+
+# Провайдер должен быть установлен вручную
+
+variable "public_key_path" {
+  default = "~/.ssh/id_rsa.pub"
+}
+
+locals {
+  ubuntu_image_family = "ubuntu-2204-lts"
+}
+
+resource "yandex_vpc_network" "network" {
+  name = "crm-network"
+}
+
+resource "yandex_vpc_subnet" "subnet" {
+  zone           = "ru-central1-a"
+  network_id     = yandex_vpc_network.network.id
+  v4_cidr_blocks = ["10.130.0.0/24"]
+  name           = "crm-subnet"
+}
+
+resource "yandex_compute_instance_group" "instances" {
+  name            = "crm-instances"
+  instance_count  = 2
+  subnet_ids      = [yandex_vpc_subnet.subnet.id]
+  platform_id     = "standard-v3"
+  resources {
+    cores  = 2
+    memory = 2
+  }
+  boot_disk {
+    initialize_params {
+      image_family = local.ubuntu_image_family
+      size         = 20
+    }
+  }
+  metadata = {
+    ssh-keys = file(var.public_key_path)
+  }
+  network_interface {
+    subnet_id = yandex_vpc_subnet.subnet.id
+    nat       = true
+  }
+  allow_stopping_for_update = true
+  labels = {
+    role = "crm-server"
+  }
+  instances {
+    name_prefix = "crm-server-"
+  }
+  instances {
+    name_prefix = "internet-store-"
+  }
+}
+
+resource "yandex_vpc_security_group" "allow-ssh-and-web-traffic" {
+  name        = "allow-ssh-and-web-traffic"
+  description = "Allows HTTPS, HTTP, and SSH traffic from anywhere."
+
+  network_id = yandex_vpc_network.network.id
+
+  ingress {
+    description    = "SSH access"
+    protocol       = "TCP"
+    port           = 22
+    v4_cidr_blocks = ["0.0.0.0/0"] # Allow SSH only via public key
+  }
+
+  egress {
+    description    = "All outgoing traffic allowed"
+    protocol       = "ALL"
+    port_min       = 0
+    port_max       = 65535
+    v4_cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+output "crm_server_public_ip" {
+  value = element(yandex_compute_instance_group.instances.instances.*.network_interface.0.nat_ip_address, 0)
+}
+
+output "internet_store_public_ip" {
+  value = element(yandex_compute_instance_group.instances.instances.*.network_interface.0.nat_ip_address, 1)
+}

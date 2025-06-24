@@ -1,0 +1,139 @@
+terraform {
+  required_providers {
+    yandex = {
+      source = "yandex-cloud/yandex"
+    }
+  }
+  required_version = ">= 0.13"
+}
+
+provider "yandex" {
+  zone = "<зона_доступности_по_умолчанию>"
+}
+
+# #############################################################################
+# Сетевая инфраструктура (VPC)
+# #############################################################################
+
+resource "yandex_vpc_network" "default-network" {
+  name = "default-network"
+}
+
+resource "yandex_vpc_subnet" "default-subnet" {
+  name           = "default-subnet"
+  zone           = "ru-central1-a"
+  network_id     = yandex_vpc_network.default-network.id
+  v4_cidr_blocks = ["10.0.1.0/24"]
+}
+
+# #############################################################################
+# Группы безопасности (Security Groups)
+# #############################################################################
+
+resource "yandex_vpc_security_group" "ssh-access" {
+  name        = "ssh-access-sg"
+  network_id  = yandex_vpc_network.default-network.id
+
+  # Разрешаем входящий SSH трафик (порт 22) с любого IP
+  ingress {
+    protocol       = "TCP"
+    port           = 22
+    v4_cidr_blocks = ["0.0.0.0/0"]
+    description    = "Allow SSH access"
+  }
+
+  # Разрешаем весь исходящий трафик
+  egress {
+    protocol       = "ANY"
+    v4_cidr_blocks = ["0.0.0.0/0"]
+    description    = "Allow all outgoing traffic"
+  }
+}
+
+# #############################################################################
+# Данные об образе ОС
+# #############################################################################
+
+data "yandex_compute_image" "ubuntu_2204" {
+  family = "ubuntu-2204-lts"
+}
+
+# #############################################################################
+# Виртуальные машины
+# #############################################################################
+
+# 1. CRM-сервер
+resource "yandex_compute_instance" "crm-server" {
+  name                      = "crm-server"
+  zone                      = "ru-central1-a"
+  platform_id               = "standard-v3"
+  allow_stopping_for_update = true
+
+  resources {
+    cores  = 2
+    memory = 2
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = data.yandex_compute_image.ubuntu_2204.id
+      size     = 20
+      type     = "network-hdd"
+    }
+  }
+
+  network_interface {
+    subnet_id          = yandex_vpc_subnet.default-subnet.id
+    nat                = true
+    security_group_ids = [yandex_vpc_security_group.ssh-access.id]
+  }
+
+  metadata = {
+    ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"
+  }
+}
+
+# 2. Сервер интернет-магазина
+resource "yandex_compute_instance" "online-store" {
+  name                      = "online-store"
+  zone                      = "ru-central1-a"
+  platform_id               = "standard-v3"
+  allow_stopping_for_update = true
+
+  resources {
+    cores  = 2
+    memory = 2
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = data.yandex_compute_image.ubuntu_2204.id
+      size     = 20
+      type     = "network-hdd"
+    }
+  }
+
+  network_interface {
+    subnet_id          = yandex_vpc_subnet.default-subnet.id
+    nat                = true
+    security_group_ids = [yandex_vpc_security_group.ssh-access.id]
+  }
+
+  metadata = {
+    ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"
+  }
+}
+
+# #############################################################################
+# Вывод данных (Outputs)
+# #############################################################################
+
+output "crm_server_public_ip" {
+  description = "Public IP address of the CRM server"
+  value       = yandex_compute_instance.crm-server.network_interface.0.nat_ip_address
+}
+
+output "online_store_public_ip" {
+  description = "Public IP address of the Online Store server"
+  value       = yandex_compute_instance.online-store.network_interface.0.nat_ip_address
+}

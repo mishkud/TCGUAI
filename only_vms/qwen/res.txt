@@ -1,0 +1,45 @@
+main_1
+
+Error: Unsupported argument
+
+  on main_1.tf line 40, in resource "yandex_vpc_security_group" "vm_sg":
+  40:     source_port    = 22
+
+An argument named "source_port" is not expected here.
+
+Error: Unsupported block type
+
+  on main_1.tf line 49, in resource "yandex_vpc_security_group" "vm_sg":
+  49:   rule {
+
+Blocks of type "rule" are not expected here.
+main_2
+
+Error: Unsupported argument
+
+  on main_2.tf line 64, in resource "yandex_compute_instance" "crm-server":
+  64:     disk_size = 20
+
+An argument named "disk_size" is not expected here.
+
+Error: Unsupported argument
+
+  on main_2.tf line 92, in resource "yandex_compute_instance" "internet-store":
+  92:     disk_size = 20
+
+An argument named "disk_size" is not expected here.
+main_3
+
+Error: Unsupported block type
+
+  on main_3.tf line 31, in resource "yandex_vpc_security_group" "vm-sg":
+  31:   rule {
+
+Blocks of type "rule" are not expected here.
+
+Error: Unsupported block type
+
+  on main_3.tf line 42, in resource "yandex_vpc_security_group" "vm-sg":
+  42:   rule {
+
+Blocks of type "rule" are not expected here.

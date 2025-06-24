@@ -1,0 +1,133 @@
+terraform {
+  required_providers {
+    yandex = {
+      source = "yandex-cloud/yandex"
+    }
+  }
+  required_version = ">= 0.13"
+}
+
+provider "yandex" {
+  zone = "<зона_доступности_по_умолчанию>"
+}
+
+# ------------------------------------------------------------------------------
+# YANDEX CLOUD NETWORK
+# ------------------------------------------------------------------------------
+
+resource "yandex_vpc_network" "default" {
+  name = "default-network"
+}
+
+resource "yandex_vpc_subnet" "default" {
+  name           = "default-subnet"
+  zone           = "ru-central1-a"
+  network_id     = yandex_vpc_network.default.id
+  v4_cidr_blocks = ["10.10.1.0/24"]
+}
+
+# ------------------------------------------------------------------------------
+# YANDEX CLOUD SECURITY GROUP
+# ------------------------------------------------------------------------------
+
+resource "yandex_vpc_security_group" "default" {
+  name       = "default-sg"
+  network_id = yandex_vpc_network.default.id
+
+  ingress {
+    protocol       = "TCP"
+    description    = "Allow SSH access"
+    v4_cidr_blocks = ["0.0.0.0/0"]
+    port           = 22
+  }
+
+  egress {
+    protocol       = "ANY"
+    description    = "Allow all outgoing traffic"
+    v4_cidr_blocks = ["0.0.0.0/0"]
+    from_port      = 0
+    to_port        = 65535
+  }
+}
+
+# ------------------------------------------------------------------------------
+# YANDEX CLOUD COMPUTE IMAGE
+# ------------------------------------------------------------------------------
+
+data "yandex_compute_image" "ubuntu_2204" {
+  family = "ubuntu-2204-lts"
+}
+
+# ------------------------------------------------------------------------------
+# YANDEX CLOUD COMPUTE INSTANCES
+# ------------------------------------------------------------------------------
+
+resource "yandex_compute_instance" "crm-server" {
+  name        = "crm-server"
+  platform_id = "standard-v2"
+  zone        = "ru-central1-a"
+
+  resources {
+    cores  = 2
+    memory = 2
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = data.yandex_compute_image.ubuntu_2204.id
+      size     = 20
+      type     = "network-hdd"
+    }
+  }
+
+  network_interface {
+    subnet_id          = yandex_vpc_subnet.default.id
+    nat                = true
+    security_group_ids = [yandex_vpc_security_group.default.id]
+  }
+
+  metadata = {
+    ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"
+  }
+}
+
+resource "yandex_compute_instance" "online-store" {
+  name        = "online-store"
+  platform_id = "standard-v2"
+  zone        = "ru-central1-a"
+
+  resources {
+    cores  = 2
+    memory = 2
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = data.yandex_compute_image.ubuntu_2204.id
+      size     = 20
+      type     = "network-hdd"
+    }
+  }
+
+  network_interface {
+    subnet_id          = yandex_vpc_subnet.default.id
+    nat                = true
+    security_group_ids = [yandex_vpc_security_group.default.id]
+  }
+
+  metadata = {
+    ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"
+  }
+}
+
+# ------------------------------------------------------------------------------
+# YANDEX CLOUD OUTPUTS
+# ------------------------------------------------------------------------------
+
+output "crm_server_public_ip" {
+  value = yandex_compute_instance.crm-server.network_interface.0.nat_ip_address
+}
+
+output "online_store_public_ip" {
+  value = yandex_compute_instance.online-store.network_interface.0.nat_ip_address
+}

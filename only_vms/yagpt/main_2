@@ -1,0 +1,134 @@
+terraform {
+  required_providers {
+    yandex = {
+      source = "yandex-cloud/yandex"
+    }
+  }
+  required_version = ">= 0.13"
+}
+
+provider "yandex" {
+  zone = "<зона_доступности_по_умолчанию>"
+}
+
+# Сеть и подсеть
+resource "yandex_vpc_network" "main" {
+  name = "main-network"
+}
+
+resource "yandex_vpc_subnet" "main" {
+  name           = "main-subnet"
+  zone           = "ru-central1-a"
+  network_id     = yandex_vpc_network.main.id
+  v4_ip_range    = "10.1.0.0/24"
+}
+
+# Security Group
+resource "yandex_vpc_security_group" "default" {
+  name = "default-sg"
+
+  rule {
+    direction     = "INGRESS"
+    priority      = 100
+    protocol      = "tcp"
+    src_ip_ranges = ["0.0.0.0/0"]
+    dest_port     = 22
+  }
+}
+
+# SSH ключ
+resource "yandex_compute_ssh_key" "default" {
+  name     = "terraform-ssh-key"
+  key      = file("~/.ssh/id_rsa.pub")
+}
+
+# Образ ОС
+data "yandex_compute_image" "ubuntu" {
+  family = "ubuntu-2204-lts"
+}
+
+# CRM-сервер
+resource "yandex_compute_instance" "crm" {
+  name           = "crm-server"
+  description    = "CRM server"
+  platform_id    = "standard-v1"
+  resources {
+    cores  = 2
+    memory = 2 * 1024
+  }
+
+  boot_disk {
+    mode = "READ_WRITE"
+    initialize_params {
+      image_id = data.yandex_compute_image.ubuntu.id
+      size     = 20
+    }
+  }
+
+  network_interface {
+    subnet_id = yandex_vpc_subnet.main.id
+    nat       = true
+  }
+
+  scheduling_policy {
+    preemptible = false
+  }
+
+  metadata = {
+    ssh-keys = "ubuntu:${yandex_compute_ssh_key.default.fingerprint}"
+  }
+
+  service_account_id = yandex_compute_instance.crm.default_service_account_id
+
+  security_group_ids = [
+    yandex_vpc_security_group.default.id
+  ]
+}
+
+# Интернет-магазин
+resource "yandex_compute_instance" "webstore" {
+  name           = "webstore-server"
+  description    = "Webstore server"
+  platform_id    = "standard-v1"
+  resources {
+    cores  = 2
+    memory = 2 * 1024
+  }
+
+  boot_disk {
+    mode = "READ_WRITE"
+    initialize_params {
+      image_id = data.yandex_compute_image.ubuntu.id
+      size     = 20
+    }
+  }
+
+  network_interface {
+    subnet_id = yandex_vpc_subnet.main.id
+    nat       = true
+  }
+
+  scheduling_policy {
+    preemptible = false
+  }
+
+  metadata = {
+    ssh-keys = "ubuntu:${yandex_compute_ssh_key.default.fingerprint}"
+  }
+
+  service_account_id = yandex_compute_instance.webstore.default_service_account_id
+
+  security_group_ids = [
+    yandex_vpc_security_group.default.id
+  ]
+}
+
+# Outputs
+output "crm_public_ip" {
+  value = yandex_compute_instance.crm.network_interface.0.nat_ip_address
+}
+
+output "webstore_public_ip" {
+  value = yandex_compute_instance.webstore.network_interface.0.nat_ip_address
+}
+
