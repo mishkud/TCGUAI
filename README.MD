@@ -15,11 +15,11 @@ Used models:
 Testing infrastracture:
 Two VM's with Managed MySQL
 
-Stages of testing (used prompt in directory):
-1)with_provider - LLM's asked to generate with provider
-2)no_provider - provider will be added manually
-3)no_provider+ssh - also ssh key will be added
-4)new_prompt - different prompt
-5)new_prompt_end - different prompt on english
-6)only_vms - Managed MySQL is removed from testing infrastructure
-7)only_vms_eng - this prompt on english
+Stages of testing (used prompt in directory):  
+1)with_provider - LLM's asked to generate with provider  
+2)no_provider - provider will be added manually  
+3)no_provider+ssh - also ssh key will be added  
+4)new_prompt - different prompt  
+5)new_prompt_end - different prompt on english  
+6)only_vms - Managed MySQL is removed from testing infrastructure  
+7)only_vms_eng - this prompt on english  
