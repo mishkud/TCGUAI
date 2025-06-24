@@ -1,0 +1,22 @@
+You are an expert in Infrastructure as Code (IaC) with a focus on Terraform and Yandex Cloud. Generate a minimal but fully functional Terraform config in a single file to deploy the following infrastructure:
+Two VMs:
+  - CRM server (2 cores, 2GB RAM, 20GB disk)
+   - E-commerce store (2 cores, 2GB RAM, 20GB disk)
+Both VMs must:
+   - Use Ubuntu 22.04 LTS
+   - Have a public IP
+   - Allow SSH access only via the provided key (path: .ssh/id_rsa)
+Config requirements:
+   - Only one main.tf file
+   - No provider (user will add it separately)
+   - Without cloud_id, folder_id, token
+   - Use variables only where critical
+   - Minimal secure default settings
+   - Ready for terraform plan/apply without modifications
+   - Clear resource separation with comments
+Additionally:
+   - Use one common network and subnet
+   - Configure basic Security Groups
+   - Add outputs for VMs' public IPs
+The output must be strictly in main.tf file format, without explanations or additional text.
+
