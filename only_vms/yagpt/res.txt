@@ -73,5 +73,38 @@ Error: Invalid resource type
 The provider yandex-cloud/yandex does not support resource type
 "yandex_compute_ssh_key".
 main_3
-Success! The configuration is valid.
 
+Error: Missing required argument
+
+  on main_3.tf line 18, in resource "yandex_vpc_subnet" "main":
+  18: resource "yandex_vpc_subnet" "main" {
+
+The argument "v4_cidr_blocks" is required, but no definition was found.
+
+Error: Unsupported argument
+
+  on main_3.tf line 22, in resource "yandex_vpc_subnet" "main":
+  22:   v4_ip_range    = "10.1.0.0/24"
+
+An argument named "v4_ip_range" is not expected here.
+
+Error: Missing required argument
+
+  on main_3.tf line 26, in resource "yandex_vpc_security_group" "default":
+  26: resource "yandex_vpc_security_group" "default" {
+
+The argument "network_id" is required, but no definition was found.
+
+Error: Unsupported argument
+
+  on main_3.tf line 33, in resource "yandex_vpc_security_group" "default":
+  33:     ip_range = "0.0.0.0/0"
+
+An argument named "ip_range" is not expected here.
+
+Error: Unsupported argument
+
+  on main_3.tf line 40, in resource "yandex_vpc_security_group" "default":
+  40:     ip_range = "0.0.0.0/0"
+
+An argument named "ip_range" is not expected here.

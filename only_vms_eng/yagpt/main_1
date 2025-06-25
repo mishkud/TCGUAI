@@ -10,4 +10,112 @@ terraform {
 provider "yandex" {
   zone = "<зона_доступности_по_умолчанию>"
 }
+# Network and Subnet configuration
+resource "yandex_vpc_network" "main" {
+  name = "infra-network"
+}
+
+resource "yandex_vpc_subnet" "main" {
+  name       = "infra-subnet"
+  zone       = "ru-central1-a"
+  network_id = yandex_vpc_network.main.id
+  ipv4_range = "10.1.0.0/24"
+}
+
+# Security Group configuration
+resource "yandex_vpc_security_group" "default" {
+  name = "default-sg"
+
+  rule {
+    direction     = "INGRESS"
+    protocol      = "tcp"
+    vpc_network_id = yandex_vpc_network.main.id
+    
+    access {
+      ip_protocol = "tcp"
+      port       = 22
+      ip_range   = "0.0.0.0/0"
+    }
+  }
+}
+
+# VM configurations
+resource "yandex_compute_instance" "crm_server" {
+  name         = "crm-server"
+  description  = "CRM Server"
+  platform_id  = "standard-v1"
+  resources {
+    cores  = 2
+    memory = 2
+  }
+
+  scheduling_policy {
+    preemptible = false
+  }
+
+  boot_disk {
+    mode = "READ_WRITE"
+    initialize_params {
+      image_id = "fd8r0p0a1jey061s990n" # Ubuntu 22.04 LTS
+      type     = "network-hdd"
+      size     = 20
+    }
+  }
+
+  network_interface {
+    subnet_id = yandex_vpc_subnet.main.id
+    security_group_ids = [yandex_vpc_security_group.default.id]
+    nat {
+      ip_version = "IPV4"
+    }
+  }
+
+  metadata = {
+    ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"
+  }
+}
+
+resource "yandex_compute_instance" "ecommerce_server" {
+  name         = "ecommerce-server"
+  description  = "E-commerce Server"
+  platform_id  = "standard-v1"
+  resources {
+    cores  = 2
+    memory = 2
+  }
+
+  scheduling_policy {
+    preemptible = false
+  }
+
+  boot_disk {
+    mode = "READ_WRITE"
+    initialize_params {
+      image_id = "fd8r0p0a1jey061s990n" # Ubuntu 22.04 LTS
+      type     = "network-hdd"
+      size     = 20
+    }
+  }
+
+  network_interface {
+    subnet_id = yandex_vpc_subnet.main.id
+    security_group_ids = [yandex_vpc_security_group.default.id]
+    nat {
+      ip_version = "IPV4"
+    }
+  }
+
+  metadata = {
+    ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"
+  }
+}
+
+# Outputs
+output "crm_public_ip" {
+  value = yandex_compute_instance.crm_server.network_interface.0.nat_ip
+}
+
+output "ecommerce_public_ip" {
+  value = yandex_compute_instance.ecommerce_server.network_interface.0.nat_ip
+}
 
