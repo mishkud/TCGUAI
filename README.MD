@@ -23,3 +23,7 @@ Stages of testing (used prompt in directory):
 5)new_prompt_end - different prompt on english  
 6)only_vms - Managed MySQL is removed from testing infrastructure  
 7)only_vms_eng - this prompt on english  
+
+| заголовок1   | заголовок2   |
+| ----------   | ----------   |
+| 123          | 345          |
