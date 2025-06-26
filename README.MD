@@ -24,7 +24,12 @@ Stages of testing (used prompt in directory):
 6)only_vms - Managed MySQL is removed from testing infrastructure  
 7)only_vms_eng - this prompt on english  
 
-You can see results on every step in directories
+You can see results on every stage in directories:
+- res.txt file in every model directory. The following one-liner was used to test the files:  
+```
+for i in {1..3}; do echo "File №$i" ; echo "main_$i" >> res.txt ; mv main_$i main_$i.tf && echo "Installing Provider" ; terraform init 1>/dev/null && echo "Writing results" ; terraform validate -no-color 1>>res.txt 2>>res.txt ; rm -rf .terraform* ; mv main_$i.tf main_$i; done
+```
+- table with results of stage
 
 Final results (validated .tf files/all generated files)
 | Model   | terraform validate   |
