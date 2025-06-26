@@ -12,7 +12,7 @@
 | Mistral | 0/3 | + | - |
 | Qwen3 | 0/3 | + | - |
 
-terraform validate - validation of .tf files
+terraform validate - validation of .tf files  
 Errors with Managed MySQL - models make mistakes in managed mysql configuration
 
 [Used prompt](./prompt.txt)
