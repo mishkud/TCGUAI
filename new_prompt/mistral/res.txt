@@ -6,6 +6,7 @@ Error: Unsupported argument
  146:     security_group_ids = [yandex_vpc_security_group.internal-traffic.id]
 
 An argument named "security_group_ids" is not expected here.
+ 
 main_2
 
 Error: Unsupported argument
@@ -14,6 +15,7 @@ Error: Unsupported argument
  146:     security_group_ids = [yandex_vpc_security_group.internal-traffic.id]
 
 An argument named "security_group_ids" is not expected here.
+ 
 main_3
 
 Error: Unsupported argument

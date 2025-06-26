@@ -7,6 +7,7 @@ Error: Duplicate required providers configuration
 
 A module may have only one required providers configuration. The required
 providers were previously configured at main_1.tf:2,3-21.
+ 
 main_2
 
 Error: Duplicate required providers configuration
@@ -16,6 +17,7 @@ Error: Duplicate required providers configuration
 
 A module may have only one required providers configuration. The required
 providers were previously configured at main_2.tf:2,3-21.
+ 
 main_3
 
 Error: Duplicate required providers configuration

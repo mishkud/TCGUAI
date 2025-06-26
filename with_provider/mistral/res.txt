@@ -32,6 +32,7 @@ Error: Missing required argument
   78: resource "yandex_mdb_mysql_cluster" "mysql-cluster" {
 
 The argument "version" is required, but no definition was found.
+ 
 main_2
 
 Error: Invalid function argument
@@ -66,6 +67,7 @@ Error: Missing required argument
   69: resource "yandex_mdb_mysql_cluster" "mysql-cluster" {
 
 The argument "version" is required, but no definition was found.
+ 
 main_3
 
 Error: Invalid function argument

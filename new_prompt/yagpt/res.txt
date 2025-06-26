@@ -42,9 +42,11 @@ Error: Reference to undeclared input variable
 
 An input variable with the name "folder_id" has not been declared. This
 variable can be declared with a variable "folder_id" {} block.
+ 
 main_2
 Success! The configuration is valid.
 
+ 
 main_3
 Success! The configuration is valid.
 

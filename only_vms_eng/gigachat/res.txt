@@ -48,6 +48,7 @@ Error: Unsupported argument
   98:     cidr_blocks = ["0.0.0.0/0"]
 
 An argument named "cidr_blocks" is not expected here.
+ 
 main_2
 
 Error: Duplicate required providers configuration
@@ -57,6 +58,7 @@ Error: Duplicate required providers configuration
 
 A module may have only one required providers configuration. The required
 providers were previously configured at main_2.tf:2,3-21.
+ 
 main_3
 
 Error: Unsupported argument

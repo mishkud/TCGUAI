@@ -20,6 +20,7 @@ Error: Unsupported block type
  128:   config {
 
 Blocks of type "config" are not expected here.
+ 
 main_2
 
 Error: Missing required argument
@@ -42,6 +43,7 @@ Error: Unsupported block type
  148:   config {
 
 Blocks of type "config" are not expected here.
+ 
 main_3
 
 Error: Unsupported block type

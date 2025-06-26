@@ -232,6 +232,7 @@ Error: Reference to undeclared resource
 
 A managed resource "yndex_compute_instance_group" "ecommerce_store" has not
 been declared in the root module.
+ 
 main_2
 
 Error: Missing required provider
@@ -247,6 +248,7 @@ This configuration requires provider
 registry.terraform.io/yandex-cloud/yandex, but that provider isn't available.
 You may be able to install it automatically by running:
   terraform init
+ 
 main_3
 
 Error: Missing required argument

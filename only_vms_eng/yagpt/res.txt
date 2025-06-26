@@ -27,6 +27,7 @@ Error: Unsupported block type
   29:   rule {
 
 Blocks of type "rule" are not expected here.
+ 
 main_2
 
 Error: Missing required argument
@@ -64,6 +65,7 @@ Error: Invalid resource type
 
 The provider yandex-cloud/yandex does not support resource type
 "yandex_compute_ssh_key".
+ 
 main_3
 
 Error: Missing required argument

@@ -13,6 +13,7 @@ Error: Unsupported block type
   49:   rule {
 
 Blocks of type "rule" are not expected here.
+ 
 main_2
 
 Error: Unsupported argument
@@ -28,6 +29,7 @@ Error: Unsupported argument
   92:     disk_size = 20
 
 An argument named "disk_size" is not expected here.
+ 
 main_3
 
 Error: Unsupported block type

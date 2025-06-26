@@ -25,6 +25,7 @@ this function works only with files that are distributed as part of the
 configuration source code, so if this file will be created by a resource in
 this configuration you must instead obtain this result from an attribute of
 that resource.
+ 
 main_2
 
 Error: Invalid function argument
@@ -59,6 +60,7 @@ Error: Missing required argument
   74: resource "yandex_mdb_mysql_cluster" "mysql_db" {
 
 The argument "version" is required, but no definition was found.
+ 
 main_3
 
 Error: Invalid function argument

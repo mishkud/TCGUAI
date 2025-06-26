@@ -13,6 +13,7 @@ Error: Unsupported argument
   48:     port_max      = 65535
 
 An argument named "port_max" is not expected here.
+ 
 main_2
 
 Error: Missing required argument
@@ -133,6 +134,7 @@ Error: Unsupported argument
   86:     port_max       = 65535
 
 An argument named "port_max" is not expected here.
+ 
 main_3
 
 Error: Missing required provider

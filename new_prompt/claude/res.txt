@@ -28,9 +28,11 @@ Error: Check Fail key mysql_config.default_authentication_plugin value: mysql_na
  185:     default_authentication_plugin = "mysql_native_password"
  186:   }
 
+ 
 main_2
 Success! The configuration is valid.
 
+ 
 main_3
 
 Warning: Argument is deprecated

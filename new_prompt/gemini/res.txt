@@ -14,6 +14,7 @@ Error: Function calls not allowed
   40:   default     = file("~/.ssh/id_rsa.pub")
 
 Functions may not be called here.
+ 
 main_2
 
 Warning: Argument is deprecated
@@ -29,6 +30,7 @@ yandex_mdb_mysql_user
 Success! The configuration is valid, but there were some validation warnings
 as shown above.
 
+ 
 main_3
 
 Warning: Argument is deprecated

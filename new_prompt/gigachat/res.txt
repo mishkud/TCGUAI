@@ -20,6 +20,7 @@ This configuration requires provider
 registry.terraform.io/yandex-cloud/yandex, but that provider isn't available.
 You may be able to install it automatically by running:
   terraform init
+ 
 main_2
 
 Error: Missing required argument
@@ -70,6 +71,7 @@ Error: Call to unknown function
  114:       cidr(yandex_compute_instance.webshop_server.network_interface.0.ip_address)]
 
 There is no function named "cidr".
+ 
 main_3
 
 Error: Missing required provider

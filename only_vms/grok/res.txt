@@ -7,9 +7,11 @@ Error: Invalid resource type
 
 The provider yandex-cloud/yandex does not support resource type
 "yandex_compute_instance_key".
+ 
 main_2
 Success! The configuration is valid.
 
+ 
 main_3
 Success! The configuration is valid.
 

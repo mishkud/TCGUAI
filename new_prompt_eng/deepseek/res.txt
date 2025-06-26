@@ -1,6 +1,7 @@
 main_1
 Success! The configuration is valid.
 
+ 
 main_2
 
 Error: Missing required argument
@@ -9,6 +10,7 @@ Error: Missing required argument
   48: resource "yandex_mdb_mysql_cluster" "main" {
 
 The argument "network_id" is required, but no definition was found.
+ 
 main_3
 Success! The configuration is valid.
 

@@ -46,6 +46,7 @@ Error: Unsupported block type
  112:   config {
 
 Blocks of type "config" are not expected here.
+ 
 main_2
 
 Error: Unsupported argument
@@ -108,6 +109,7 @@ Error: Unsupported block type
  125:   config {
 
 Blocks of type "config" are not expected here.
+ 
 main_3
 
 Error: Invalid function argument

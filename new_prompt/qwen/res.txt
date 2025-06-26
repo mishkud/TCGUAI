@@ -20,6 +20,7 @@ Error: Unsupported block type
  139:     permission {
 
 Blocks of type "permission" are not expected here.
+ 
 main_2
 
 Error: Argument or block definition required
@@ -29,6 +30,7 @@ Error: Argument or block definition required
 
 An argument or block definition is required here. To set an argument, use the
 equals sign "=" to introduce the argument value.
+ 
 main_3
 
 Error: Missing required argument

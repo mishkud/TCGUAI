@@ -7,6 +7,7 @@ Error: Unclosed configuration block
 
 There is no closing brace for this block before the end of the file. This may
 be caused by incorrect brace nesting elsewhere in this file.
+ 
 main_2
 
 Error: Missing required argument
@@ -44,6 +45,7 @@ Error: Reference to undeclared input variable
 
 An input variable with the name "folder_id" has not been declared. This
 variable can be declared with a variable "folder_id" {} block.
+ 
 main_3
 
 Error: Unclosed configuration block

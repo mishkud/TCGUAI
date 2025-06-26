@@ -33,6 +33,7 @@ Error: Cannot index a set value
 Block type "database" is represented by a set of objects, and set elements do
 not have addressable keys. To find elements matching specific criteria, use a
 "for" expression with an "if" clause.
+ 
 main_2
 
 Error: Invalid resource type
@@ -50,6 +51,7 @@ Error: Invalid resource type
 
 The provider yandex-cloud/yandex does not support resource type
 "yandex_mdb_user".
+ 
 main_3
 
 Warning: Argument is deprecated

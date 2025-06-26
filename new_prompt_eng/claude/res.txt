@@ -1,6 +1,7 @@
 main_1
 Success! The configuration is valid.
 
+ 
 main_2
 
 Warning: sql_mode
@@ -46,6 +47,7 @@ Error: Check Fail key mysql_config.default_authentication_plugin value: mysql_na
  167:     default_authentication_plugin = "mysql_native_password"
  168:   }
 
+ 
 main_3
 Success! The configuration is valid.
 

@@ -6,9 +6,11 @@ Error: Missing required argument
   71: resource "yandex_mdb_mysql_cluster" "mysql_db" {
 
 The argument "version" is required, but no definition was found.
+ 
 main_2
 Success! The configuration is valid.
 
+ 
 main_3
 
 Error: Missing required argument

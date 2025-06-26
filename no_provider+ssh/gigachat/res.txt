@@ -15,6 +15,7 @@ Error: Invalid output name
 
 A name must start with a letter or underscore and may contain only letters,
 digits, underscores, and dashes.
+ 
 main_2
 
 Error: Missing required argument
@@ -45,6 +46,7 @@ Error: Unsupported block type
 
 Blocks of type "mysql_config" are not expected here. Did you mean to define
 argument "mysql_config"? If so, use the equals sign to assign it a value.
+ 
 main_3
 
 Error: Missing required argument

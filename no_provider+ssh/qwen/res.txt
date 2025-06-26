@@ -14,6 +14,7 @@ Error: Unsupported block type
 
 Blocks of type "mysql_config" are not expected here. Did you mean to define
 argument "mysql_config"? If so, use the equals sign to assign it a value.
+ 
 main_2
 
 Error: Missing required argument
@@ -51,6 +52,7 @@ Error: Unsupported block type
   80:   users {
 
 Blocks of type "users" are not expected here. Did you mean "user"?
+ 
 main_3
 
 Error: Missing required argument

@@ -15,6 +15,7 @@ Error: JSON in "key.json" are not valid: invalid character 'k' looking for begin
   on main_1.tf line 15, in provider "yandex":
   15:   service_account_key_file = "key.json" # Или укажите путь к файлу с ключом
 
+ 
 main_2
 
 Warning: Argument is deprecated
@@ -53,6 +54,7 @@ this function works only with files that are distributed as part of the
 configuration source code, so if this file will be created by a resource in
 this configuration you must instead obtain this result from an attribute of
 that resource.
+ 
 main_3
 
 Warning: Argument is deprecated

@@ -13,6 +13,7 @@ Error: Unsupported argument
   74:   allocated_storage   = 10
 
 An argument named "allocated_storage" is not expected here.
+ 
 main_2
 
 Error: Reference to undeclared input variable
@@ -30,6 +31,7 @@ Error: Reference to undeclared input variable
 
 An input variable with the name "mysql_password" has not been declared. This
 variable can be declared with a variable "mysql_password" {} block.
+ 
 main_3
 
 Error: Missing required argument

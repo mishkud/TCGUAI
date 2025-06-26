@@ -1,6 +1,7 @@
 main_1
 Success! The configuration is valid.
 
+ 
 main_2
 
 Error: Unsupported argument
@@ -9,6 +10,7 @@ Error: Unsupported argument
   57:     security_group = yandex_vpc_security_group.vm_internal.id
 
 An argument named "security_group" is not expected here.
+ 
 main_3
 Success! The configuration is valid.
 

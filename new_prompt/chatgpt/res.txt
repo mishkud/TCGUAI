@@ -7,6 +7,7 @@ Error: Unsupported block type
 
 Blocks of type "permissions" are not expected here. Did you mean
 "permission"?
+ 
 main_2
 
 Error: Unsupported argument
@@ -15,6 +16,7 @@ Error: Unsupported argument
  144:   region      = "ru-central1"
 
 An argument named "region" is not expected here.
+ 
 main_3
 
 Warning: Argument is deprecated

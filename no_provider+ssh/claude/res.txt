@@ -13,6 +13,7 @@ yandex_mdb_mysql_database
 Success! The configuration is valid, but there were some validation warnings
 as shown above.
 
+ 
 main_2
 
 Error: Invalid data source
@@ -22,6 +23,7 @@ Error: Invalid data source
 
 The provider yandex-cloud/yandex does not support data source
 "yandex_compute_zone".
+ 
 main_3
 
 Error: Invalid data source
