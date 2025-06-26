@@ -1,4 +1,4 @@
-#Results of this stage
+# Results of this stage
 
 | Model   | terraform init   | terraform validate   |
 |:-------:|:--------------------:|:----------------:|
