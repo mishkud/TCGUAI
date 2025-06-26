@@ -12,7 +12,7 @@
 | Mistral | 0/3 | + | - |
 | Qwen3 | 0/3 | - | + |
 
-terraform validate - validation of .tf files
+terraform validate - validation of .tf files  
 Errors with SSH - terraform search .ssh/id_rsa.pub file, but it doesn't exist
 
 [Used prompt](./prompt.txt)
