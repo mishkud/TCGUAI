@@ -10,7 +10,7 @@
 | Mistral | yes | no |
 | Qwen3 | no | - |
 
-terraform init - models added provider that allowed it to be installed
+terraform init - models added provider that allowed it to be installed   
 terraform validate - validation of .tf files
 
 [Used prompt](https://github.com/mishkud/TCGUAI/blob/main/with_provider/prompt.txt)
